@@ -1,3 +1,5 @@
+using Xunit;
+
 namespace SCMS.API.Tests;
 
 public class UnitTest1
