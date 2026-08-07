@@ -91,10 +91,10 @@ dotnet run
 ## Branching Strategy
 
 - `main` — stable, deployable code only
-- `develop` — integration branch for completed features
-- `feature/<name>` — individual task branches, branched off `develop`
+- `dev` — integration branch for completed features
+- `feature/<name>` — individual task branches, branched off `dev`
 
-All changes go through a pull request into `develop`, with at least one review before merging. See `CONTRIBUTING.md` for details.
+All changes go through a pull request into `dev`, with at least one review before merging. See `CONTRIBUTING.md` for details.
 
 ## Team
 
