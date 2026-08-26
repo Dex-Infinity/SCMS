@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  sqldata:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=SuperSecretPassword123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlvolume:/var/opt/mssql
+
+  scms.api:
+    image: scmsapi
+    build:
+      context: .
+      dockerfile: src/SCMS.API/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqldata;Database=SCMSDb;User=sa;Password=SuperSecretPassword123!;TrustServerCertificate=True;
+    depends_on:
+      - sqldata
+
+  scms.web:
+    image: scmsweb
+    build:
+      context: .
+      dockerfile: src/SCMS.Web/Dockerfile
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ApiSettings__BaseUrl=http://scms.api:8080
+    depends_on:
+      - scms.api
+
+volumes:
+  sqlvolume:
