@@ -10,6 +10,9 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    public DbSet<Department> Departments => Set<Department>();
+    public DbSet<Student> Students => Set<Student>();
+    public DbSet<Admin> Admins => Set<Admin>();
     public DbSet<Complaint> Complaints => Set<Complaint>();
     public DbSet<Notification> Notifications => Set<Notification>();
 
@@ -17,14 +20,11 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Complaint>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.Description).IsRequired();
-            entity.Property(e => e.StudentId).IsRequired();
-        });
+        // Department, Student, Admin, Complaint configured via IEntityTypeConfiguration
+        // classes in Data/Configurations - picked up automatically here.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
+        // Notification config left exactly as Virtus originally wrote it - his table, untouched.
         modelBuilder.Entity<Notification>(entity =>
         {
             entity.HasKey(e => e.Id);
