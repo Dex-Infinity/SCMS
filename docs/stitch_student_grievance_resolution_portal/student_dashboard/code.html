@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Student Dashboard - SCMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#1e3a8a",
+                        "on-tertiary-container": "#f39461",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "primary-fixed": "#dce1ff",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#d0e1fb",
+                        "on-secondary-container": "#54647a",
+                        "tertiary-container": "#6e2c00",
+                        "surface-variant": "#e0e3e5",
+                        "outline": "#757682",
+                        "outline-variant": "#c5c5d3",
+                        "inverse-surface": "#2d3133",
+                        "on-tertiary-fixed-variant": "#773205",
+                        "surface-dim": "#d8dadc",
+                        "on-primary-fixed": "#00164e",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-primary-container": "#90a8ff",
+                        "surface": "#f7f9fb",
+                        "on-background": "#191c1e",
+                        "error": "#ba1a1a",
+                        "tertiary": "#4b1c00",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "surface-container": "#eceef0",
+                        "secondary": "#505f76",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#b6c4ff",
+                        "tertiary-fixed": "#ffdbcb",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "on-surface": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "background": "#f7f9fb",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-primary-fixed-variant": "#264191",
+                        "surface-tint": "#4059aa",
+                        "error-container": "#ffdad6",
+                        "primary": "#00236f",
+                        "on-surface-variant": "#444651",
+                        "on-tertiary-fixed": "#341100",
+                        "surface-container-high": "#e6e8ea"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "base": "4px",
+                        "margin-mobile": "16px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "margin-desktop": "48px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "caption": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "title-md": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "title-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background antialiased flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex h-screen w-64 fixed left-0 top-0 bg-surface dark:bg-surface-container shadow-md flex-col py-xl px-md gap-base z-20">
+<div class="flex items-center gap-md px-md pb-lg border-b border-surface-variant">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A small, elegant institutional crest or university logo. It features a modern, simplified shield design in a deep blue tone on a clean white background, conveying authority and trust. The style is flat, vector-like, and professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdrGzjZuXP8twhLjnmiiGtrUEbNm5jZc9c4saHRt-shLn-sRO9ajKfK2k2xLu-j0LUfpK2fmozzuDwV_ZY41Jzdauf24k5xIpjYevb2lCzfnQ1yCK0GLsRV3mcXtojHdoUWZTQNPse-7QlRQWTdMM0fnu1KUv3rx9wzdevaG28sMh_t5IDFDCPGibddpiYQKELZcUX1Uy6Yfj6RPqalw0hfYUW-d5s1HXw7XbyOK7NidL7OwAN45JoKQ"/>
+<div>
+<h1 class="font-headline-lg text-primary dark:text-primary-fixed-dim text-lg leading-tight">SCMS Portal</h1>
+<p class="font-caption text-caption text-secondary">Institutional Authority</p>
+</div>
+</div>
+<div class="flex-1 mt-lg flex flex-col gap-base">
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container rounded-lg px-md py-sm active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all rounded-lg active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">assignment_late</span>
+<span class="font-label-sm text-label-sm">My Complaints</span>
+</a>
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all rounded-lg active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">add_circle</span>
+<span class="font-label-sm text-label-sm">Submit New</span>
+</a>
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all rounded-lg active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">library_books</span>
+<span class="font-label-sm text-label-sm">Resources</span>
+</a>
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all rounded-lg active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-sm text-label-sm">History</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col gap-sm">
+<button class="w-full py-sm px-md rounded-lg border border-error text-error font-label-sm text-label-sm hover:bg-error-container transition-colors active:scale-[0.98] flex items-center justify-center gap-2">
+                Emergency Support
+            </button>
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all rounded-lg active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-sm text-label-sm">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar (Mobile mainly, but acts as header on desktop here) -->
+<header class="w-full top-0 sticky shadow-sm bg-surface-container-lowest dark:bg-surface-dim z-10 hidden md:block">
+<div class="flex justify-between items-center px-lg py-sm w-full max-w-[1140px] mx-auto">
+<div class="font-title-md text-title-md text-title-md font-headline-lg text-primary-container dark:text-on-primary-container md:hidden">
+                    SCMS
+                </div>
+<!-- Search (left aligned as per spec) -->
+<div class="flex-1 max-w-md hidden md:flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-surface-variant focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<span class="material-symbols-outlined text-on-surface-variant mr-2">search</span>
+<input class="bg-transparent border-none outline-none w-full font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:ring-0 p-0" placeholder="Search complaints, resources..." type="text"/>
+</div>
+<div class="flex items-center gap-4 ml-auto">
+<button class="text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-on-surface-variant/10 transition-colors cursor-pointer active:opacity-80 p-2 rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-on-surface-variant/10 transition-colors cursor-pointer active:opacity-80 p-2 rounded-full">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img class="w-8 h-8 rounded-full border border-surface-variant object-cover cursor-pointer hover:opacity-80 transition-opacity" data-alt="A professional headshot of a diverse university student, smiling slightly. The photo is well-lit, studio quality, with a blurred neutral background. It is cropped into a small circle, suitable for a UI profile avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS9QLL-DKnWq8t6vZkAx74KIojdfUJw1Cgt-U57ZaY0SXSRaYMLrtrqOXnuae4gFb2k8R6VL4tVJE5yHE9V2ooj0PmIshbdnpu2J9aU13dpLBbWgXrk0ac5G9Ru7taaPGdqzi2yilMtb3v1Pn0S0tqvHtjhPQSDb-_NffNzJ4CJAc2erj-kSR5CubN7Oy_ZhjoqCWCirSIn3fuiUmD5ym4GIeRPsmSy7DCBkNGAn85lyvGgjEDRKymgw"/>
+</div>
+</div>
+</header>
+<!-- Mobile Top Nav (visible only on mobile) -->
+<header class="md:hidden w-full top-0 sticky shadow-sm bg-surface-container-lowest flex justify-between items-center px-4 py-3 z-10 border-b border-surface-variant">
+<div class="font-title-md text-title-md font-headline-lg-mobile text-primary">
+                SCMS
+            </div>
+<button class="p-2 text-on-surface-variant rounded-full hover:bg-surface-container">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</header>
+<!-- Scrollable Content Canvas -->
+<main class="flex-1 overflow-y-auto p-4 md:p-8 lg:p-xl custom-scrollbar">
+<div class="max-w-[1140px] mx-auto space-y-xl">
+<!-- Welcome & CTA Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] border border-surface-variant">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface md:text-[40px] md:leading-[48px] tracking-tight">Welcome back, Alex.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-2xl">Here is the current status of your submitted complaints. We are processing your recent requests.</p>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-on-primary font-title-md text-label-sm px-6 py-3 rounded-lg shadow-sm transition-colors flex items-center gap-2 whitespace-nowrap active:scale-[0.98]">
+<span class="material-symbols-outlined">add</span>
+                        Submit Complaint
+                    </button>
+</div>
+<!-- Bento Grid Status Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Total -->
+<div class="bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] border border-surface-variant flex flex-col justify-between h-32 hover:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)] transition-shadow">
+<div class="flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Total Filed</span>
+<span class="material-symbols-outlined text-secondary">folder</span>
+</div>
+<div class="font-display-lg text-display-lg text-on-surface">12</div>
+</div>
+<!-- Pending -->
+<div class="bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] border border-surface-variant flex flex-col justify-between h-32 border-l-4 border-l-tertiary-container hover:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)] transition-shadow">
+<div class="flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Pending Review</span>
+<span class="material-symbols-outlined text-tertiary-container">pending_actions</span>
+</div>
+<div class="font-display-lg text-display-lg text-on-surface">3</div>
+</div>
+<!-- Resolved -->
+<div class="bg-surface-container-lowest p-lg rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] border border-surface-variant flex flex-col justify-between h-32 border-l-4 border-l-primary hover:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)] transition-shadow">
+<div class="flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Resolved</span>
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+<div class="font-display-lg text-display-lg text-on-surface">9</div>
+</div>
+</div>
+<!-- Recent Complaints Table -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] border border-surface-variant overflow-hidden">
+<div class="p-lg border-b border-surface-variant flex justify-between items-center">
+<h3 class="font-title-md text-title-md text-on-surface">Recent Complaints</h3>
+<button class="text-primary font-label-sm text-label-sm hover:underline">View All</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-surface-variant">
+<th class="p-4 font-label-sm text-label-sm text-on-surface-variant font-semibold">ID</th>
+<th class="p-4 font-label-sm text-label-sm text-on-surface-variant font-semibold">Subject</th>
+<th class="p-4 font-label-sm text-label-sm text-on-surface-variant font-semibold">Category</th>
+<th class="p-4 font-label-sm text-label-sm text-on-surface-variant font-semibold">Date Submitted</th>
+<th class="p-4 font-label-sm text-label-sm text-on-surface-variant font-semibold">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface divide-y divide-surface-variant">
+<tr class="hover:bg-surface-container-low/50 transition-colors group cursor-pointer">
+<td class="p-4 font-medium text-secondary">#CMP-2023-089</td>
+<td class="p-4 group-hover:text-primary transition-colors">Heating issue in Dorm B</td>
+<td class="p-4 text-on-surface-variant">Facilities</td>
+<td class="p-4 text-on-surface-variant">Oct 24, 2023</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-tertiary-fixed text-on-tertiary-fixed">
+                                            Pending
+                                        </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors group cursor-pointer">
+<td class="p-4 font-medium text-secondary">#CMP-2023-085</td>
+<td class="p-4 group-hover:text-primary transition-colors">Grade dispute for CS101</td>
+<td class="p-4 text-on-surface-variant">Academic</td>
+<td class="p-4 text-on-surface-variant">Oct 18, 2023</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-fixed text-on-primary-fixed">
+                                            Under Review
+                                        </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors group cursor-pointer">
+<td class="p-4 font-medium text-secondary">#CMP-2023-072</td>
+<td class="p-4 group-hover:text-primary transition-colors">Broken projector in Room 402</td>
+<td class="p-4 text-on-surface-variant">IT Support</td>
+<td class="p-4 text-on-surface-variant">Sep 05, 2023</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
+                                            Resolved
+                                        </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

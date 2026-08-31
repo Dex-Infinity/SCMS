@@ -7,8 +7,9 @@ public interface IComplaintService
 {
     Task<IEnumerable<ComplaintResponseDto>> GetAllComplaintsAsync();
     Task<ComplaintResponseDto?> GetComplaintByIdAsync(int id);
-    Task<IEnumerable<ComplaintResponseDto>> GetComplaintsByStudentIdAsync(string studentId);
+    Task<IEnumerable<ComplaintResponseDto>> GetComplaintsByStudentIdAsync(int studentId);
+    Task<IEnumerable<ComplaintResponseDto>> GetComplaintsByDepartmentIdAsync(int departmentId);
     Task<ComplaintResponseDto> CreateComplaintAsync(ComplaintCreateDto createDto);
     Task<ComplaintResponseDto?> UpdateStatusAsync(int id, ComplaintStatus status);
-    Task<ComplaintResponseDto?> AssignComplaintAsync(int id, string departmentId, string? assignedTo);
+    Task<ComplaintResponseDto?> AssignComplaintAsync(int id, int departmentId, int? assignedToId);
 }
