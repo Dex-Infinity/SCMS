@@ -11,7 +11,6 @@ public class ComplaintService : IComplaintService
     private readonly IComplaintRepository _repository;
     private readonly INotificationService _notificationService;
 
-    // Inject repository and notification service
     public ComplaintService(IComplaintRepository repository, INotificationService notificationService)
     {
         _repository = repository;
@@ -32,10 +31,17 @@ public class ComplaintService : IComplaintService
         return complaint == null ? null : MapToResponseDto(complaint);
     }
 
-    // Fetch all complaints for a specific student
-    public async Task<IEnumerable<ComplaintResponseDto>> GetComplaintsByStudentIdAsync(string studentId)
+    // Fetch all complaints for a specific student ID
+    public async Task<IEnumerable<ComplaintResponseDto>> GetComplaintsByStudentIdAsync(int studentId)
     {
         var complaints = await _repository.GetByStudentIdAsync(studentId);
+        return complaints.Select(MapToResponseDto);
+    }
+
+    // Fetch all complaints assigned to a department ID
+    public async Task<IEnumerable<ComplaintResponseDto>> GetComplaintsByDepartmentIdAsync(int departmentId)
+    {
+        var complaints = await _repository.GetByDepartmentIdAsync(departmentId);
         return complaints.Select(MapToResponseDto);
     }
 
@@ -70,19 +76,19 @@ public class ComplaintService : IComplaintService
     }
 
     // Assign complaint to department/staff and send alert notification
-    public async Task<ComplaintResponseDto?> AssignComplaintAsync(int id, string departmentId, string? assignedTo)
+    public async Task<ComplaintResponseDto?> AssignComplaintAsync(int id, int departmentId, int? assignedToId)
     {
-        var assigned = await _repository.AssignAsync(id, departmentId, assignedTo);
+        var assigned = await _repository.AssignAsync(id, departmentId, assignedToId);
         if (assigned != null)
         {
-            await _notificationService.NotifyAssignmentAsync(assigned.Id, departmentId, assignedTo);
+            await _notificationService.NotifyAssignmentAsync(assigned.Id, departmentId, assignedToId);
             return MapToResponseDto(assigned);
         }
 
         return null;
     }
 
-    // Helper: Map Complaint entity to ComplaintResponseDto
+    // Helper: Map Complaint entity to ComplaintResponseDto with enriched entity names
     private static ComplaintResponseDto MapToResponseDto(Complaint complaint)
     {
         return new ComplaintResponseDto
@@ -91,9 +97,12 @@ public class ComplaintService : IComplaintService
             Title = complaint.Title,
             Description = complaint.Description,
             StudentId = complaint.StudentId,
+            StudentName = complaint.Student?.FullName,
             DepartmentId = complaint.DepartmentId,
+            DepartmentName = complaint.Department?.Name,
             Status = complaint.Status,
-            AssignedTo = complaint.AssignedTo,
+            AssignedToId = complaint.AssignedToId,
+            AssignedToName = complaint.AssignedTo?.FullName,
             CreatedAt = complaint.CreatedAt,
             UpdatedAt = complaint.UpdatedAt
         };

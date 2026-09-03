@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Submit New Complaint - SCMS Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#1e3a8a",
+                        "on-tertiary-container": "#f39461",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "primary-fixed": "#dce1ff",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#d0e1fb",
+                        "on-secondary-container": "#54647a",
+                        "tertiary-container": "#6e2c00",
+                        "surface-variant": "#e0e3e5",
+                        "outline": "#757682",
+                        "outline-variant": "#c5c5d3",
+                        "inverse-surface": "#2d3133",
+                        "on-tertiary-fixed-variant": "#773205",
+                        "surface-dim": "#d8dadc",
+                        "on-primary-fixed": "#00164e",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-primary-container": "#90a8ff",
+                        "surface": "#f7f9fb",
+                        "on-background": "#191c1e",
+                        "error": "#ba1a1a",
+                        "tertiary": "#4b1c00",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "surface-container": "#eceef0",
+                        "secondary": "#505f76",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#b6c4ff",
+                        "tertiary-fixed": "#ffdbcb",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "on-surface": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "background": "#f7f9fb",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-primary-fixed-variant": "#264191",
+                        "surface-tint": "#4059aa",
+                        "error-container": "#ffdad6",
+                        "primary": "#00236f",
+                        "on-surface-variant": "#444651",
+                        "on-tertiary-fixed": "#341100",
+                        "surface-container-high": "#e6e8ea"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "base": "4px",
+                        "margin-mobile": "16px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "margin-desktop": "48px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "caption": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "title-md": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "title-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #c5c5d3; border-radius: 20px; }
+    </style>
+</head>
+<body class="h-full flex text-on-surface bg-surface font-body-md custom-scrollbar">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface dark:bg-surface-container shadow-md py-xl px-md gap-base z-20">
+<div class="flex items-center gap-3 mb-xl px-sm">
+<img alt="University Crest" class="w-10 h-10 object-contain" data-alt="A small, professional crest logo representing an academic institution, featuring a shield and laurel leaves in navy blue and silver, against a transparent background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBojOlz8AB97UmiqFbN6pKUU0UsDSNmWPGvSWBYkDnblitz8aJJtcQQx9XCj2AIE_g0iZ9FHFizasDwLD5CMUCjcx83sP-wIazd50y9jaNoqna5WumtArTVcv5SUKa-n_DDW13f4bT-qmo-0E2HJ5o2JKXdftb2BqyIwI7sH_KveV3uvcHJIMNdUWi0kXWwxvqkDrSDNwybgm4DWyIGQ_aE0txdfJN4-5DqvjSQbp0d8-UBhu-XC9WPzg"/>
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary dark:text-primary-fixed-dim tracking-tight">SCMS Portal</h1>
+<p class="font-caption text-caption text-secondary">Institutional Authority</p>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-sm">
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm rounded-lg hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm rounded-lg hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">assignment_late</span>
+<span class="font-label-sm text-label-sm">My Complaints</span>
+</a>
+<a class="flex items-center gap-3 bg-primary-container text-on-primary-container rounded-lg px-md py-sm active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined">add_circle</span>
+<span class="font-label-sm text-label-sm">Submit New</span>
+</a>
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm rounded-lg hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">library_books</span>
+<span class="font-label-sm text-label-sm">Resources</span>
+</a>
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm rounded-lg hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-sm text-label-sm">History</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col gap-sm">
+<button class="w-full py-sm px-md rounded-lg border border-error text-error font-label-sm text-label-sm flex items-center justify-center gap-2 hover:bg-error-container transition-colors">
+<span class="material-symbols-outlined">emergency</span>
+                Emergency Support
+            </button>
+<a class="flex items-center gap-3 text-secondary dark:text-secondary-fixed-dim px-md py-sm rounded-lg hover:bg-secondary-container/50 dark:hover:bg-secondary-container/20 transition-all active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-sm text-label-sm">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-64 min-h-screen">
+<!-- TopNavBar (Mobile) -->
+<header class="md:hidden w-full top-0 sticky shadow-sm bg-surface-container-lowest dark:bg-surface-dim z-30">
+<div class="flex justify-between items-center px-lg py-sm w-full mx-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary cursor-pointer">menu</span>
+<h1 class="font-title-md text-title-md text-primary font-bold">SCMS</h1>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-container transition-colors rounded-full p-1">notifications</span>
+<img alt="User profile photo" class="w-8 h-8 rounded-full object-cover cursor-pointer hover:opacity-80" data-alt="A small, circular avatar portrait of a university student looking professional, bright lighting, light gray background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2CStwJ_AD0cfTl7U_Ejd3lBEi0ZBMJxQQfXRG4p7oYet3bk8LrHtc8AfNKDlnWMwaMMgu58Rm5xMfEJHLdYZk39beTfASYc4EFVMDXRYV75GC2tQ7mPnWlV344EJSt5CYX822G6s042O-vo481zqn02YrhtgZPY2iRVwtAPqmVJQPvd2YxNGUJJDa80FkmhvXh_Dbg7-UI5XsLZHvhKjhJJ3D7Tw_R3oMva-6a3c6OaGoYBkyHrQd7g"/>
+</div>
+</div>
+</header>
+<!-- TopNavBar (Desktop) -->
+<header class="hidden md:flex w-full top-0 sticky shadow-sm bg-surface-container-lowest dark:bg-surface-dim z-10 px-lg py-sm justify-end items-center gap-md">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-container p-2 rounded-full transition-colors">search</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-container p-2 rounded-full transition-colors">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-container p-2 rounded-full transition-colors">settings</span>
+<div class="h-8 w-px bg-outline-variant mx-2"></div>
+<div class="flex items-center gap-2 cursor-pointer hover:bg-surface-container p-1 pr-3 rounded-full transition-colors">
+<img alt="User profile photo" class="w-8 h-8 rounded-full object-cover" data-alt="A small, circular avatar portrait of a university student looking professional, bright lighting, light gray background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxDRIV4HHCa_AMw_vNx3ZznOyKMvEWo6aXAYoiUDmcI4OU_AANrGupLMVA8SZGKgJDb1HfEYuDudTHKkgFtSHKoZn1qMWFZfN7ihI0P0XH24J_CqwkAoKr06pL2vbuyq0fShPdvJL-1dKXwaVRJWQz1R2ijPUWG5euWbxcBerAiB-JXA0X3bMweKvvjw8DEEPVdGy_ZoaM5RDPhGXf3z82CRxlW6arquOdKMSXM1D4xaTV6wWa2RwH6Q"/>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">J. Doe</span>
+</div>
+</div>
+</header>
+<main class="flex-1 p-margin-mobile md:p-margin-desktop max-w-4xl mx-auto w-full">
+<!-- Page Header -->
+<div class="mb-xl">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2">Submit New Complaint</h2>
+<p class="font-body-md text-body-md text-secondary">Please provide detailed information to help us process your request efficiently. All submissions are handled with strict confidentiality.</p>
+</div>
+<!-- Form Container -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
+<!-- Progress Indicator -->
+<div class="bg-surface-container-low px-lg py-md border-b border-outline-variant/30 flex items-center gap-sm">
+<div class="flex items-center text-primary">
+<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-label-sm text-label-sm">1</div>
+<span class="ml-2 font-label-sm text-label-sm font-semibold">Details</span>
+</div>
+<div class="h-px bg-outline-variant flex-1 mx-2"></div>
+<div class="flex items-center text-outline">
+<div class="w-6 h-6 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center font-label-sm text-label-sm">2</div>
+<span class="ml-2 font-label-sm text-label-sm">Review</span>
+</div>
+</div>
+<form class="p-lg md:p-xl flex flex-col gap-xl">
+<!-- Section: Classification -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface" for="category">Category <span class="text-error">*</span></label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="category">
+<option disabled="" selected="" value="">Select a category</option>
+<option value="academic">Academic (Grades, Faculty, Coursework)</option>
+<option value="facility">Facility (Maintenance, Safety, Access)</option>
+<option value="financial">Financial (Billing, Aid, Fees)</option>
+<option value="student_life">Student Life (Housing, Conduct, Orgs)</option>
+<option value="other">Other</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface" for="incident_date">Date of Incident (Optional)</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="incident_date" type="date"/>
+</div>
+</div>
+<!-- Section: Details -->
+<div class="flex flex-col gap-lg">
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface" for="subject">Subject <span class="text-error">*</span></label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="subject" placeholder="Brief summary of the issue" type="text"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface" for="description">Detailed Description <span class="text-error">*</span></label>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y" id="description" placeholder="Provide as much detail as possible, including names, locations, and chronological events." rows="6"></textarea>
+<p class="font-caption text-caption text-outline mt-1">Please stick to factual information.</p>
+</div>
+</div>
+<!-- Section: File Upload -->
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface">Supporting Documents (Optional)</label>
+<div class="border-2 border-dashed border-outline-variant rounded-lg p-xl flex flex-col items-center justify-center text-center bg-surface hover:bg-surface-container-low transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-4xl text-outline mb-sm group-hover:text-primary transition-colors">cloud_upload</span>
+<p class="font-label-sm text-label-sm text-on-surface mb-1">Click to upload or drag and drop</p>
+<p class="font-caption text-caption text-outline">PDF, JPG, or PNG (Max. 10MB)</p>
+<input accept=".pdf,.jpg,.jpeg,.png" class="hidden" multiple="" type="file"/>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex flex-col-reverse sm:flex-row justify-end gap-md pt-lg border-t border-outline-variant/30 mt-sm">
+<button class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container transition-colors" type="button">
+                            Cancel
+                        </button>
+<button class="px-lg py-sm rounded-lg bg-[#1E3A8A] text-on-primary font-label-sm text-label-sm hover:bg-[#1E3A8A]/90 transition-colors flex items-center justify-center gap-2" type="button">
+<span>Proceed to Review</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</form>
+</div>
+</main>
+</div>
+</body></html>

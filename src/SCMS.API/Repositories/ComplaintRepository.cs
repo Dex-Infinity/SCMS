@@ -10,39 +10,51 @@ public class ComplaintRepository : IComplaintRepository
 {
     private readonly ApplicationDbContext _context;
 
-    // Inject EF Core DbContext
     public ComplaintRepository(ApplicationDbContext context)
     {
         _context = context;
     }
 
-    // Get all complaints ordered by creation date
+    // Get all complaints ordered by creation date with related entity data
     public async Task<IEnumerable<Complaint>> GetAllAsync()
     {
         return await _context.Complaints
+            .Include(c => c.Student)
+            .Include(c => c.Department)
+            .Include(c => c.AssignedTo)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
     }
 
-    // Find complaint by primary key ID
+    // Find complaint by primary key ID with related entity data
     public async Task<Complaint?> GetByIdAsync(int id)
     {
-        return await _context.Complaints.FindAsync(id);
+        return await _context.Complaints
+            .Include(c => c.Student)
+            .Include(c => c.Department)
+            .Include(c => c.AssignedTo)
+            .FirstOrDefaultAsync(c => c.Id == id);
     }
 
-    // Get complaints submitted by a specific student
-    public async Task<IEnumerable<Complaint>> GetByStudentIdAsync(string studentId)
+    // Get complaints submitted by a specific student ID
+    public async Task<IEnumerable<Complaint>> GetByStudentIdAsync(int studentId)
     {
         return await _context.Complaints
+            .Include(c => c.Student)
+            .Include(c => c.Department)
+            .Include(c => c.AssignedTo)
             .Where(c => c.StudentId == studentId)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
     }
 
-    // Get complaints assigned to a specific department
-    public async Task<IEnumerable<Complaint>> GetByDepartmentIdAsync(string departmentId)
+    // Get complaints assigned to a specific department ID
+    public async Task<IEnumerable<Complaint>> GetByDepartmentIdAsync(int departmentId)
     {
         return await _context.Complaints
+            .Include(c => c.Student)
+            .Include(c => c.Department)
+            .Include(c => c.AssignedTo)
             .Where(c => c.DepartmentId == departmentId)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
@@ -53,7 +65,9 @@ public class ComplaintRepository : IComplaintRepository
     {
         _context.Complaints.Add(complaint);
         await _context.SaveChangesAsync();
-        return complaint;
+
+        // Reload navigation properties for response
+        return (await GetByIdAsync(complaint.Id))!;
     }
 
     // Update status column for a complaint
@@ -66,24 +80,21 @@ public class ComplaintRepository : IComplaintRepository
         complaint.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return complaint;
+        return await GetByIdAsync(id);
     }
 
-    // Assign complaint to department and update status
-    public async Task<Complaint?> AssignAsync(int id, string departmentId, string? assignedTo)
+    // Assign complaint to department and optional admin staff
+    public async Task<Complaint?> AssignAsync(int id, int departmentId, int? assignedToId)
     {
         var complaint = await _context.Complaints.FindAsync(id);
         if (complaint == null) return null;
 
         complaint.DepartmentId = departmentId;
-        if (!string.IsNullOrWhiteSpace(assignedTo))
-        {
-            complaint.AssignedTo = assignedTo;
-        }
+        complaint.AssignedToId = assignedToId;
         complaint.Status = ComplaintStatus.Assigned;
         complaint.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return complaint;
+        return await GetByIdAsync(id);
     }
 }
