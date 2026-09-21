@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SCMS.API.Middleware;
 using SCMS.API.Repositories;
 using SCMS.API.Services;
 using SCMS.Infrastructure.Data;
@@ -6,7 +8,22 @@ using SCMS.Infrastructure.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var problemDetails = new ValidationProblemDetails(context.ModelState)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "One or more validation errors occurred.",
+                Instance = context.HttpContext.Request.Path,
+                Extensions = { ["traceId"] = context.HttpContext.TraceIdentifier }
+            };
+
+            return new BadRequestObjectResult(problemDetails);
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -38,6 +55,9 @@ builder.Services.AddScoped<IComplaintService, ComplaintService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var app = builder.Build();
+
+// Catch unhandled exceptions and return consistent ProblemDetails responses
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Ensure Database & Tables are created on app startup
 using (var scope = app.Services.CreateScope())
