@@ -33,9 +33,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 // Dependency Injection Registrations
+builder.Services.Configure<AttachmentOptions>(builder.Configuration.GetSection("Attachments"));
+
+// Dependency Injection Registrations
 builder.Services.AddScoped<IComplaintRepository, ComplaintRepository>();
 builder.Services.AddScoped<IComplaintService, ComplaintService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+builder.Services.AddScoped<IAttachmentService, AttachmentService>();
 
 var app = builder.Build();
 

@@ -12,6 +12,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Complaint> Complaints => Set<Complaint>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Attachment> Attachments => Set<Attachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +32,16 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Message).IsRequired();
             entity.Property(e => e.UserId).IsRequired();
+        });
+
+        modelBuilder.Entity<Attachment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.StoredFileName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.ContentType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.UploadedBy).IsRequired();
+            entity.HasIndex(e => e.ComplaintId);
         });
     }
 }
