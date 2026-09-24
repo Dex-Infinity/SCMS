@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SCMS.API.Middleware;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -12,7 +15,22 @@ using SCMS.Infrastructure.Identity;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var problemDetails = new ValidationProblemDetails(context.ModelState)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "One or more validation errors occurred.",
+                Instance = context.HttpContext.Request.Path,
+                Extensions = { ["traceId"] = context.HttpContext.TraceIdentifier }
+            };
+
+            return new BadRequestObjectResult(problemDetails);
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -118,6 +136,10 @@ builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection("Seed")
 
 var app = builder.Build();
 
+// Catch unhandled exceptions and return consistent ProblemDetails responses
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Ensure Database & Tables are created on app startup
 // Ensure Database & Tables are created on app startup and seed roles/admin
 using (var scope = app.Services.CreateScope())
 {
