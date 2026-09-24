@@ -6,11 +6,12 @@ namespace SCMS.API.DTOs;
 // Data transfer object for submitting a new complaint
 public class ComplaintCreateDto
 {
-    [Required]
-    [StringLength(200, MinimumLength = 3)]
+    [Required(ErrorMessage = "Complaint title is required.")]
+    [StringLength(200, MinimumLength = 3, ErrorMessage = "Title must be between 3 and 200 characters.")]
     public string Title { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Complaint description is required.")]
+    [MinLength(10, ErrorMessage = "Description must be at least 10 characters long.")]
     public string Description { get; set; } = string.Empty;
 
     [Required]
@@ -22,7 +23,7 @@ public class ComplaintCreateDto
 // Data transfer object for updating status
 public class ComplaintStatusUpdateDto
 {
-    [Required]
+    [Required(ErrorMessage = "Status is required.")]
     public ComplaintStatus Status { get; set; }
 
     public string? Comment { get; set; }

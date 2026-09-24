@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SCMS.API.DTOs;
 using SCMS.API.Services;
@@ -8,6 +9,7 @@ namespace SCMS.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class ComplaintsController : ControllerBase
 {
     private readonly IComplaintService _complaintService;
@@ -17,8 +19,9 @@ public class ComplaintsController : ControllerBase
         _complaintService = complaintService;
     }
 
-    // GET api/complaints - Get all complaints
+    // GET api/complaints - Get all complaints (admin only)
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(IEnumerable<ComplaintResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
@@ -26,8 +29,9 @@ public class ComplaintsController : ControllerBase
         return Ok(result);
     }
 
-    // GET api/complaints/{id} - Get single complaint by ID
+    // GET api/complaints/{id} - Get single complaint by ID (admin only)
     [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ComplaintResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
@@ -58,6 +62,7 @@ public class ComplaintsController : ControllerBase
 
     // POST api/complaints - Submit new complaint
     [HttpPost]
+    [Authorize(Roles = "Admin,Student")]
     [ProducesResponseType(typeof(ComplaintResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] ComplaintCreateDto dto)
@@ -68,8 +73,9 @@ public class ComplaintsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
-    // PUT api/complaints/{id}/status - Update complaint status
+    // PUT api/complaints/{id}/status - Update complaint status (admin only)
     [HttpPut("{id:int}/status")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ComplaintResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] ComplaintStatusUpdateDto dto)
@@ -82,8 +88,9 @@ public class ComplaintsController : ControllerBase
         return Ok(updated);
     }
 
-    // PUT api/complaints/{id}/assign - Assign complaint to department/staff
+    // PUT api/complaints/{id}/assign - Assign complaint to department/staff (admin only)
     [HttpPut("{id:int}/assign")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ComplaintResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Assign(int id, [FromBody] ComplaintAssignDto dto)

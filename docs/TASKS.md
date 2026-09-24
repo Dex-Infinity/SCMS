@@ -68,5 +68,5 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 - [ ] Monitor open PRs and help resolve merge conflicts between teammates
 
 **Rushdan Delimwine Antiku**
-- [ ] Set up the SQL Server environment and deployment
-- [ ] Set up hosting/deployment for the API and Blazor app, keep deployment/runbook notes updated
+- [x] Set up the SQL Server environment and deployment
+- [x] Set up hosting/deployment for the API and Blazor app, keep deployment/runbook notes updated
