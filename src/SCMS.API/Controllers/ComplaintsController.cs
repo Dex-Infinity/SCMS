@@ -14,7 +14,6 @@ public class ComplaintsController : ControllerBase
 {
     private readonly IComplaintService _complaintService;
 
-    // Inject complaint service
     public ComplaintsController(IComplaintService complaintService)
     {
         _complaintService = complaintService;
@@ -43,17 +42,25 @@ public class ComplaintsController : ControllerBase
         return Ok(result);
     }
 
-    // GET api/complaints/student/{studentId} - Get complaints by student ID (student/admin)
-    [HttpGet("student/{studentId}")]
-    [Authorize(Roles = "Admin,Student")]
+    // GET api/complaints/student/{studentId} - Get complaints by student ID
+    [HttpGet("student/{studentId:int}")]
     [ProducesResponseType(typeof(IEnumerable<ComplaintResponseDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByStudentId(string studentId)
+    public async Task<IActionResult> GetByStudentId(int studentId)
     {
         var result = await _complaintService.GetComplaintsByStudentIdAsync(studentId);
         return Ok(result);
     }
 
-    // POST api/complaints - Submit new complaint (student/admin)
+    // GET api/complaints/department/{departmentId} - Get complaints by department ID
+    [HttpGet("department/{departmentId:int}")]
+    [ProducesResponseType(typeof(IEnumerable<ComplaintResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByDepartmentId(int departmentId)
+    {
+        var result = await _complaintService.GetComplaintsByDepartmentIdAsync(departmentId);
+        return Ok(result);
+    }
+
+    // POST api/complaints - Submit new complaint
     [HttpPost]
     [Authorize(Roles = "Admin,Student")]
     [ProducesResponseType(typeof(ComplaintResponseDto), StatusCodes.Status201Created)]
@@ -90,7 +97,7 @@ public class ComplaintsController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var assigned = await _complaintService.AssignComplaintAsync(id, dto.DepartmentId, dto.AssignedTo);
+        var assigned = await _complaintService.AssignComplaintAsync(id, dto.DepartmentId, dto.AssignedToId);
         if (assigned == null) return NotFound(new { message = $"Complaint with ID {id} was not found." });
 
         return Ok(assigned);

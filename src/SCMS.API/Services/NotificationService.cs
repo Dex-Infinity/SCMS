@@ -9,18 +9,17 @@ public class NotificationService : INotificationService
 {
     private readonly ApplicationDbContext _context;
 
-    // Inject database context
     public NotificationService(ApplicationDbContext context)
     {
         _context = context;
     }
 
     // Send notification to student when complaint status changes
-    public async Task NotifyStatusChangeAsync(int complaintId, string studentId, string newStatus)
+    public async Task NotifyStatusChangeAsync(int complaintId, int studentId, string newStatus)
     {
         var notification = new Notification
         {
-            UserId = studentId,
+            UserId = studentId.ToString(),
             ComplaintId = complaintId,
             Title = "Complaint Status Updated",
             Message = $"Your complaint #{complaintId} status has been updated to '{newStatus}'.",
@@ -32,16 +31,16 @@ public class NotificationService : INotificationService
     }
 
     // Send notification to department/staff when assigned
-    public async Task NotifyAssignmentAsync(int complaintId, string departmentId, string? assignedTo)
+    public async Task NotifyAssignmentAsync(int complaintId, int departmentId, int? assignedToId)
     {
-        string targetUser = !string.IsNullOrWhiteSpace(assignedTo) ? assignedTo : $"Dept-{departmentId}";
+        string targetUser = assignedToId.HasValue ? $"Admin-{assignedToId.Value}" : $"Dept-{departmentId}";
 
         var notification = new Notification
         {
             UserId = targetUser,
             ComplaintId = complaintId,
             Title = "New Complaint Assigned",
-            Message = $"Complaint #{complaintId} has been assigned to department {departmentId}.",
+            Message = $"Complaint #{complaintId} has been assigned to department #{departmentId}.",
             CreatedAt = DateTime.UtcNow
         };
 
