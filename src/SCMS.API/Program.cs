@@ -101,9 +101,14 @@ builder.Services.AddAuthentication(options =>
     });
 
 // Dependency Injection Registrations
+builder.Services.Configure<AttachmentOptions>(builder.Configuration.GetSection("Attachments"));
+
+// Dependency Injection Registrations
 builder.Services.AddScoped<IComplaintRepository, ComplaintRepository>();
 builder.Services.AddScoped<IComplaintService, ComplaintService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+builder.Services.AddScoped<IAttachmentService, AttachmentService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IDbInitializer, DbInitializer>();
