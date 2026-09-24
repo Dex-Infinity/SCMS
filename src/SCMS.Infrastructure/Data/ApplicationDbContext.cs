@@ -17,6 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Admin> Admins => Set<Admin>();
+    public DbSet<Attachment> Attachments => Set<Attachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

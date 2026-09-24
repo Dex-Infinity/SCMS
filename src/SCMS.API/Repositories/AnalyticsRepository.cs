@@ -37,7 +37,7 @@ public class AnalyticsRepository : IAnalyticsRepository
             .GroupBy(c => c.DepartmentId)
             .Select(g => new DepartmentCountDto
             {
-                DepartmentId = g.Key,
+                DepartmentId = g.Key.ToString(),
                 Count = g.Count()
             })
             .OrderByDescending(d => d.Count)
