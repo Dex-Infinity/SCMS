@@ -90,3 +90,41 @@ This flow describes the student journey through the Student Complaint Management
 ## Source Basis
 
 This flow follows the requirements in `docs/stitch_student_grievance_resolution_portal/scms_user_flows_requirements.md` and the project proposal. The project requirements specify secure login, dashboard overview, complaint submission with category/subject/description and supporting documents, status tracking with a timeline, email/in-app notifications, and final resolution with feedback.
+
+## Usability Revisions
+
+The student flow was reviewed through a moderated usability check involving three student participants and two administrator-role participants.
+
+Based on the usability findings, the following flow clarifications were identified:
+
+1. **Complaint tracking:** `My Complaints` is the primary location for tracking active complaints. Students select a complaint from the complaint list to view its status and updates.
+2. **History:** `History` represents previous activity and is not the primary location for tracking an active complaint.
+3. **Complaint updates:** Updates and administrator communication should be presented within the individual complaint detail/tracking view.
+4. **Under Review:** The status should have supporting text explaining that the complaint is currently being assessed.
+5. **Category field:** The complaint form should provide brief guidance or examples to help students understand what type of issue belongs in the Category field.
+6. **Submission distinction:** The dashboard should maintain a clear distinction between **Submit Complaint** for creating a new complaint and **My Complaints** for viewing and tracking existing complaints.
+
+### Revised Student Tracking Path
+
+```text
+[ Dashboard ]
+      |
+      v
+[ My Complaints ]
+      |
+      v
+[ Complaint List ]
+      |
+      v
+[ Select Complaint ]
+      |
+      v
+[ Complaint Details ]
+      |
+      +---------------------------+
+      |                           |
+      v                           v
+[ Status ]              [ Updates / Communication ]
+      |
+      v
+[ Resolution ]

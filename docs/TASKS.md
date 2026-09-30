@@ -34,9 +34,9 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 
 **Roselyn Francis**
 - [x] Map user flows for students (submit → track → receive updates)
-- [ ] Wireframe the admin dashboard (complaint queue, management view)
-- [ ] Design responsive layouts (mobile + desktop breakpoints)
-- [ ] Run usability check with sample students/admins, revise flows
+- [x] Wireframe the admin dashboard (complaint queue, management view)
+- [x] Design responsive layouts (mobile + desktop breakpoints)
+- [x] Run usability check with sample students/admins, revise flows
 
 **Quartey Obed Nii Kpakpa**
 - [ ] Map user flows for admins (review → assign → resolve)
