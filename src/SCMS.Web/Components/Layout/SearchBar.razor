@@ -1,0 +1,102 @@
+@inject NavigationManager Navigation
+
+<div class="@RootClass" role="search">
+    @if (_open)
+    {
+        <form class="flex w-full items-center gap-sm rounded-full border border-outline-variant bg-surface px-md py-1 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+              @onsubmit="SubmitAsync"
+              @onsubmit:preventDefault>
+            <Icon Name="search" Class="text-outline" />
+            <input @ref="_input"
+                   type="text"
+                   enterkeyhint="search"
+                   autocomplete="off"
+                   class="min-w-0 flex-1 bg-transparent py-1 text-body-md text-on-surface placeholder:text-outline focus:outline-none"
+                   placeholder="@Placeholder"
+                   aria-label="@Placeholder"
+                   @bind="_query"
+                   @bind:event="oninput"
+                   @onkeydown="OnKeyDown" />
+            <button type="button" class="icon-btn size-8" aria-label="Close search" @onclick="Close">
+                <Icon Name="close" Class="text-[20px]" />
+            </button>
+        </form>
+    }
+    else
+    {
+        <button type="button" class="icon-btn" aria-label="Search" aria-expanded="false" @onclick="Open">
+            <Icon Name="search" />
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Placeholder { get; set; } = "Search complaints";
+
+    /// <summary>
+    /// Raised with the trimmed query when the user presses Enter. If nobody handles it,
+    /// the bar navigates to <see cref="AppRoutes.Search"/> with ?q=...
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnSearch { get; set; }
+
+    private ElementReference _input;
+    private bool _open;
+    private bool _focusPending;
+    private string _query = string.Empty;
+
+    // On phones the open search covers the whole header; from "sm" up it sits inline.
+    private string RootClass => _open
+        ? "absolute inset-0 z-10 flex items-center bg-surface-container-lowest px-md sm:static sm:z-auto sm:w-72 sm:bg-transparent sm:px-0"
+        : string.Empty;
+
+    private void Open()
+    {
+        _open = true;
+        _focusPending = true;
+    }
+
+    private void Close()
+    {
+        _open = false;
+        _query = string.Empty;
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            Close();
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        var query = _query.Trim();
+        if (query.Length == 0)
+        {
+            return;
+        }
+
+        if (OnSearch.HasDelegate)
+        {
+            await OnSearch.InvokeAsync(query);
+        }
+        else
+        {
+            Navigation.NavigateTo($"{AppRoutes.Search}?q={Uri.EscapeDataString(query)}");
+        }
+
+        Close();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusPending)
+        {
+            _focusPending = false;
+            await _input.FocusAsync();
+        }
+    }
+}

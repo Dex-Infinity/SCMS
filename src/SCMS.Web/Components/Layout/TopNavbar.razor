@@ -1,0 +1,84 @@
+<header class="sticky top-0 z-10 flex h-14 items-center justify-between gap-md border-b border-outline-variant/30 bg-surface-container-lowest px-md shadow-sm md:justify-end md:px-lg">
+    @* Mobile: menu button + short brand (the sidebar is a drawer below "md") *@
+    <div class="flex items-center gap-sm md:hidden">
+        <button type="button"
+                class="icon-btn text-primary"
+                aria-label="Open navigation menu"
+                aria-controls="primary-navigation"
+                @onclick="OnMenuClick">
+            <Icon Name="menu" />
+        </button>
+        <span class="text-title-md font-bold text-primary">SCMS</span>
+    </div>
+
+    <div class="flex items-center gap-1 sm:gap-4">
+        <SearchBar OnSearch="OnSearch" />
+
+        <a href="@AppRoutes.Notifications"
+           class="icon-btn"
+           aria-label="@NotificationsLabel">
+            <Icon Name="notifications" />
+            @if (UnreadNotifications > 0)
+            {
+                <span class="absolute top-2 right-2 size-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest" aria-hidden="true"></span>
+            }
+        </a>
+
+        <a href="@AppRoutes.Settings" class="icon-btn hidden sm:inline-flex" aria-label="Settings">
+            <Icon Name="settings" />
+        </a>
+
+        <div class="mx-2 hidden h-8 w-px bg-outline-variant sm:block" aria-hidden="true"></div>
+
+        <a href="@AppRoutes.Profile"
+           class="flex items-center gap-2 rounded-full p-1 pr-1 transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-primary-container sm:pr-3"
+           aria-label="Profile: @UserName">
+            @if (!string.IsNullOrWhiteSpace(AvatarUrl))
+            {
+                <img src="@AvatarUrl" alt="" class="size-8 rounded-full object-cover" />
+            }
+            else
+            {
+                <span class="flex size-8 items-center justify-center rounded-full bg-primary-fixed text-caption font-semibold text-on-primary-fixed-variant" aria-hidden="true">@Initials</span>
+            }
+            <span class="hidden text-label-sm text-on-surface sm:inline">@UserName</span>
+        </a>
+    </div>
+</header>
+
+@code {
+    [Parameter, EditorRequired]
+    public string UserName { get; set; } = string.Empty;
+
+    /// <summary>Optional photo. Falls back to the user's initials.</summary>
+    [Parameter]
+    public string? AvatarUrl { get; set; }
+
+    [Parameter]
+    public int UnreadNotifications { get; set; }
+
+    /// <summary>Opens the sidebar drawer on small screens.</summary>
+    [Parameter]
+    public EventCallback OnMenuClick { get; set; }
+
+    /// <summary>Forwarded from the search bar; leave unset to use its default navigation.</summary>
+    [Parameter]
+    public EventCallback<string> OnSearch { get; set; }
+
+    private string NotificationsLabel =>
+        UnreadNotifications > 0 ? "Notifications, " + UnreadNotifications + " unread" : "Notifications";
+
+    private string Initials
+    {
+        get
+        {
+            var parts = UserName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return parts.Length switch
+            {
+                0 => "?",
+                1 => parts[0][..1].ToUpperInvariant(),
+                _ => string.Concat(parts[0][..1], parts[^1][..1]).ToUpperInvariant()
+            };
+        }
+    }
+}

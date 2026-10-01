@@ -1,0 +1,13 @@
+<span class="material-symbols-outlined @Class" aria-hidden="true" style="@(Filled ? "font-variation-settings: 'FILL' 1, 'wght' 400;" : null)">@Name</span>
+
+@code {
+    /// <summary>Material Symbols ligature name, e.g. "search" or "cloud_upload".</summary>
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public bool Filled { get; set; }
+}

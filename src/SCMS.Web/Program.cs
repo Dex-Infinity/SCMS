@@ -1,10 +1,14 @@
 using SCMS.Web.Components;
+using SCMS.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// TODO: swap for the real API-backed implementation once auth + endpoints are wired up.
+builder.Services.AddScoped<IComplaintSubmissionService, MockComplaintSubmissionService>();
 
 var app = builder.Build();
 

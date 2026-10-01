@@ -1,0 +1,46 @@
+<ol class="flex items-center gap-sm border-b border-outline-variant/30 bg-surface-container-low px-lg py-md" aria-label="Progress">
+    @for (var i = 0; i < Steps.Count; i++)
+    {
+        var number = i + 1;
+        var isCurrent = number == Current;
+        var isDone = number < Current;
+        var circleClass = isCurrent || isDone
+            ? "bg-primary-container text-on-primary"
+            : "bg-surface-variant text-on-surface-variant";
+        var labelClass = isCurrent ? "font-semibold text-primary" : isDone ? "text-primary" : "text-secondary";
+
+        <li class="flex items-center" aria-current="@(isCurrent ? "step" : null)">
+            <span class="flex size-6 items-center justify-center rounded-full text-label-sm @circleClass">
+                @if (isDone)
+                {
+                    <Icon Name="check" Class="text-[16px]" />
+                }
+                else
+                {
+                    <text>@number</text>
+                }
+            </span>
+            <span class="ml-2 text-label-sm @labelClass">
+                @Steps[i]
+                @if (isDone)
+                {
+                    <span class="sr-only">(completed)</span>
+                }
+            </span>
+        </li>
+
+        if (i < Steps.Count - 1)
+        {
+            <li class="mx-2 h-px flex-1 bg-outline-variant" role="presentation"></li>
+        }
+    }
+</ol>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<string> Steps { get; set; } = [];
+
+    /// <summary>1-based index of the active step.</summary>
+    [Parameter]
+    public int Current { get; set; } = 1;
+}
