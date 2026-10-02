@@ -7,10 +7,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// TODO: swap for the real API-backed implementation once auth + endpoints are wired up.
+// TODO: swap for the real API-backed implementations once auth + endpoints are wired up.
 builder.Services.AddScoped<IComplaintSubmissionService, MockComplaintSubmissionService>();
 builder.Services.AddScoped<IStudentDashboardService, MockStudentDashboardService>();
 builder.Services.AddScoped<ICurrentUserService, MockCurrentUserService>();
+builder.Services.AddScoped<IAnalyticsService, MockAnalyticsService>();
 
 var app = builder.Build();
 
