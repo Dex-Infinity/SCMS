@@ -8,15 +8,15 @@
 <nav id="primary-navigation"
      aria-label="Primary"
      class="@NavClass">
-    <a href="/" class="mb-xl flex items-center gap-3 rounded-lg px-sm focus-visible:outline-2 focus-visible:outline-primary-container">
+    <a href="/" class="flex items-center gap-md border-b border-surface-variant px-md pb-lg focus-visible:outline-2 focus-visible:outline-primary-container">
         <img src="@Assets["images/crest.svg"]" alt="" class="size-10 shrink-0 object-contain" />
         <div>
-            <div class="text-headline-lg tracking-tight text-primary">SCMS Portal</div>
+            <div class="text-lg leading-tight text-primary">SCMS Portal</div>
             <p class="text-caption text-secondary">Institutional Authority</p>
         </div>
     </a>
 
-    <ul class="flex flex-1 flex-col gap-sm">
+    <ul class="mt-lg flex flex-1 flex-col gap-base">
         @foreach (var item in Items)
         {
             <li>
@@ -32,7 +32,6 @@
         <a href="@AppRoutes.EmergencySupport"
            class="flex w-full items-center justify-center gap-2 rounded-lg border border-error px-md py-sm text-label-sm text-error transition-colors hover:bg-error-container focus-visible:outline-2 focus-visible:outline-error"
            @onclick="CloseAsync">
-            <Icon Name="emergency" />
             Emergency Support
         </a>
         <a href="@AppRoutes.Logout" class="nav-link">

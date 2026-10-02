@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@inject ICurrentUserService Users
 
 <div class="min-h-screen bg-surface text-on-surface">
     <a href="#main-content"
@@ -9,11 +10,11 @@
     <Sidebar IsOpen="_sidebarOpen" OnClose="CloseSidebar" />
 
     <div class="flex min-h-screen flex-col md:pl-64">
-        <TopNavbar UserName="@_userName"
+        <TopNavbar UserName="@(_user?.DisplayName ?? string.Empty)"
                    UnreadNotifications="@_unreadNotifications"
                    OnMenuClick="OpenSidebar" />
 
-        <main id="main-content" class="flex-1 p-margin-mobile md:p-margin-desktop">
+        <main id="main-content" class="flex-1 p-margin-mobile md:p-xl">
             @Body
         </main>
     </div>
@@ -30,11 +31,14 @@
 </div>
 
 @code {
-    // TODO: replace with the signed-in user (AuthenticationState) and real notification count.
-    private readonly string _userName = "J. Doe";
+    // TODO: replace with a real notification count.
     private readonly int _unreadNotifications = 0;
 
+    private CurrentUser? _user;
+
     private bool _sidebarOpen;
+
+    protected override async Task OnInitializedAsync() => _user = await Users.GetAsync();
 
     private void OpenSidebar() => _sidebarOpen = true;
     private void CloseSidebar() => _sidebarOpen = false;

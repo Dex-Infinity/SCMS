@@ -9,6 +9,8 @@ builder.Services.AddRazorComponents()
 
 // TODO: swap for the real API-backed implementation once auth + endpoints are wired up.
 builder.Services.AddScoped<IComplaintSubmissionService, MockComplaintSubmissionService>();
+builder.Services.AddScoped<IStudentDashboardService, MockStudentDashboardService>();
+builder.Services.AddScoped<ICurrentUserService, MockCurrentUserService>();
 
 var app = builder.Build();
 

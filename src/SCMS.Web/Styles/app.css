@@ -100,7 +100,9 @@
   --text-caption--line-height: 1rem;
   --text-caption--font-weight: 400;
 
-  /* Named spacing (4px baseline) */
+  /* Named spacing (4px baseline).
+     Heads-up: these names also win over Tailwind's built-in size scale, so max-w-md / w-lg / h-xl
+     resolve to 16px / 24px / 32px, not 28rem / 32rem / 36rem. Use max-w-[28rem] or max-w-2xl+ instead. */
   --spacing-xs: 4px;
   --spacing-base: 4px;
   --spacing-sm: 8px;
@@ -186,5 +188,9 @@
   .nav-link.active,
   .nav-link.active:hover {
     @apply bg-primary-container text-on-primary-container;
+  }
+
+  .nav-link.active .material-symbols-outlined {
+    font-variation-settings: "FILL" 1, "wght" 400;
   }
 }

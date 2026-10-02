@@ -6,7 +6,7 @@ namespace SCMS.Web;
 /// </summary>
 public static class AppRoutes
 {
-    public const string Dashboard = "/dashboard";              // (planned)
+    public const string Dashboard = "/dashboard";
     public const string Complaints = "/complaints";            // (planned)
     public const string SubmitComplaint = "/submit-complaint";
     public const string Resources = "/resources";              // (planned)
@@ -17,4 +17,6 @@ public static class AppRoutes
     public const string Settings = "/settings";                // (planned)
     public const string Profile = "/profile";                  // (planned)
     public const string Search = "/search";                    // (planned)
+
+    public static string ComplaintDetails(int id) => $"{Complaints}/{id}"; // (planned)
 }

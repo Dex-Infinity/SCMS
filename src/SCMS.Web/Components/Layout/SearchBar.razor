@@ -1,38 +1,35 @@
 @inject NavigationManager Navigation
 
+@* From "md" up this is a persistent search pill. On phones it collapses to an icon that opens a full-width bar over the header. *@
 <div class="@RootClass" role="search">
-    @if (_open)
+    @if (!_open)
     {
-        <form class="flex w-full items-center gap-sm rounded-full border border-outline-variant bg-surface px-md py-1 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
-              @onsubmit="SubmitAsync"
-              @onsubmit:preventDefault>
-            <Icon Name="search" Class="text-outline" />
-            <input @ref="_input"
-                   type="text"
-                   enterkeyhint="search"
-                   autocomplete="off"
-                   class="min-w-0 flex-1 bg-transparent py-1 text-body-md text-on-surface placeholder:text-outline focus:outline-none"
-                   placeholder="@Placeholder"
-                   aria-label="@Placeholder"
-                   @bind="_query"
-                   @bind:event="oninput"
-                   @onkeydown="OnKeyDown" />
-            <button type="button" class="icon-btn size-8" aria-label="Close search" @onclick="Close">
-                <Icon Name="close" Class="text-[20px]" />
-            </button>
-        </form>
-    }
-    else
-    {
-        <button type="button" class="icon-btn" aria-label="Search" aria-expanded="false" @onclick="Open">
+        <button type="button" class="icon-btn md:hidden" aria-label="Search" aria-expanded="false" @onclick="Open">
             <Icon Name="search" />
         </button>
     }
+
+    <form class="@FormClass" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+        <Icon Name="search" Class="text-on-surface-variant" />
+        <input @ref="_input"
+               type="text"
+               enterkeyhint="search"
+               autocomplete="off"
+               class="min-w-0 flex-1 bg-transparent p-0 text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none"
+               placeholder="@Placeholder"
+               aria-label="@Placeholder"
+               @bind="_query"
+               @bind:event="oninput"
+               @onkeydown="OnKeyDown" />
+        <button type="button" class="icon-btn size-8 md:hidden" aria-label="Close search" @onclick="Close">
+            <Icon Name="close" Class="text-[20px]" />
+        </button>
+    </form>
 </div>
 
 @code {
     [Parameter]
-    public string Placeholder { get; set; } = "Search complaints";
+    public string Placeholder { get; set; } = "Search complaints, resources...";
 
     /// <summary>
     /// Raised with the trimmed query when the user presses Enter. If nobody handles it,
@@ -46,10 +43,13 @@
     private bool _focusPending;
     private string _query = string.Empty;
 
-    // On phones the open search covers the whole header; from "sm" up it sits inline.
     private string RootClass => _open
-        ? "absolute inset-0 z-10 flex items-center bg-surface-container-lowest px-md sm:static sm:z-auto sm:w-72 sm:bg-transparent sm:px-0"
-        : string.Empty;
+        ? "absolute inset-0 z-10 flex items-center bg-surface-container-lowest px-md md:static md:z-auto md:max-w-[28rem] md:flex-1 md:bg-transparent md:px-0"
+        : "ml-auto md:ml-0 md:max-w-[28rem] md:flex-1";
+
+    private string FormClass =>
+        "w-full items-center gap-2 rounded-full border border-surface-variant bg-surface-container-low px-4 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary "
+        + (_open ? "flex" : "hidden md:flex");
 
     private void Open()
     {
