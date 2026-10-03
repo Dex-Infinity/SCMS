@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1850" viewBox="0 0 1400 1850">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#191c1e" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#4059aa"/>
+    </marker>
+    <style>
+      .title { font: 700 42px Inter, Arial, sans-serif; fill: #191c1e; }
+      .subtitle { font: 400 20px Inter, Arial, sans-serif; fill: #444651; }
+      .node-title { font: 600 21px Inter, Arial, sans-serif; fill: #191c1e; }
+      .node-body { font: 400 16px Inter, Arial, sans-serif; fill: #444651; }
+      .small { font: 500 14px Inter, Arial, sans-serif; fill: #444651; }
+      .section { font: 600 18px Inter, Arial, sans-serif; fill: #00236f; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="1850" fill="#f7f9fb"/>
+  <rect x="0" y="0" width="1400" height="120" fill="#00236f"/>
+  <text x="70" y="62" class="title" fill="#ffffff" style="fill:#ffffff">SCMS Student User Flow</text>
+  <text x="70" y="94" class="subtitle" fill="#dce1ff">Submit → Track → Resolve</text>
+
+  <text x="70" y="175" class="section">PRIMARY STUDENT JOURNEY</text>
+
+  <!-- Login -->
+  <g>
+    <rect x="70" y="205" width="1260" height="105" rx="12" fill="#ffffff" stroke="#c5c5d3"/>
+    <circle cx="125" cy="257" r="28" fill="#1e3a8a"/>
+    <text x="125" y="264" text-anchor="middle" font-family="Inter,Arial" font-size="18" font-weight="700" fill="#ffffff">1</text>
+    <text x="180" y="248" class="node-title">Login</text>
+    <text x="180" y="275" class="node-body">Secure access through the system authentication flow.</text>
+  </g>
+
+  <line x1="700" y1="310" x2="700" y2="350" stroke="#4059aa" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Dashboard -->
+  <g>
+    <rect x="70" y="360" width="1260" height="105" rx="12" fill="#ffffff" stroke="#c5c5d3"/>
+    <circle cx="125" cy="412" r="28" fill="#1e3a8a"/>
+    <text x="125" y="419" text-anchor="middle" font-family="Inter,Arial" font-size="18" font-weight="700" fill="#ffffff">2</text>
+    <text x="180" y="403" class="node-title">Dashboard Overview</text>
+    <text x="180" y="430" class="node-body">View a summary of active and past complaints and reach the main student actions.</text>
+  </g>
+
+  <line x1="700" y1="465" x2="700" y2="505" stroke="#4059aa" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Split -->
+  <rect x="70" y="515" width="1260" height="150" rx="12" fill="#eceef0" stroke="#c5c5d3"/>
+  <text x="700" y="550" text-anchor="middle" class="section">TWO CORE STUDENT ACTIONS</text>
+
+  <g>
+    <rect x="115" y="570" width="535" height="65" rx="10" fill="#ffffff" stroke="#1e3a8a" stroke-width="2"/>
+    <text x="382" y="610" text-anchor="middle" class="node-title">Submit Complaint</text>
+  </g>
+  <g>
+    <rect x="750" y="570" width="535" height="65" rx="10" fill="#ffffff" stroke="#1e3a8a" stroke-width="2"/>
+    <text x="1017" y="610" text-anchor="middle" class="node-title">My Complaints</text>
+  </g>
+
+  <line x1="382" y1="635" x2="382" y2="700" stroke="#4059aa" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="1017" y1="635" x2="1017" y2="700" stroke="#4059aa" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Form and list -->
+  <g>
+    <rect x="115" y="710" width="535" height="120" rx="12" fill="#ffffff" stroke="#c5c5d3"/>
+    <text x="150" y="752" class="node-title">Complaint Form</text>
+    <text x="150" y="781" class="node-body">Category • Subject • Description</text>
+    <text x="150" y="807" class="node-body">Supporting documents (PDFs / images)</text>
+  </g>
+  <g>
+    <rect x="750" y="710" width="535" height="120" rx="12" fill="#ffffff" stroke="#c5c5d3"/>
+    <text x="785" y="752" class="node-title">Complaint List</text>
+    <text x="785" y="781" class="node-body">Submitted complaints with clear status badges.</text>
+    <text x="785" y="807" class="node-body">Select a complaint to view its details.</text>
+  </g>
+
+  <!-- Merge -->
+  <line x1="382" y1="830" x2="382" y2="875" stroke="#4059aa" stroke-width="3"/>
+  <line x1="1017" y1="830" x2="1017" y2="875" stroke="#4059aa" stroke-width="3"/>
+  <line x1="382" y1="875" x2="1017" y2="875" stroke="#4059aa" stroke-width="3"/>
+  <line x1="700" y1="875" x2="700" y2="915" stroke="#4059aa" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Confirmation -->
+  <g>
+    <rect x="70" y="925" width="1260" height="105" rx="12" fill="#ffffff" stroke="#c5c5d3"/>
+    <circle cx="125" cy="977" r="28" fill="#1e3a8a"/>
+    <text x="125" y="984" text-anchor="middle" font-family="Inter,Arial" font-size="18" font-weight="700" fill="#ffffff">3</text>
+    <text x="180" y="968" class="node-title">Submission Confirmation</text>
+    <text x="180" y="995" class="node-body">Confirm successful submission and provide a complaint reference.</text>
+  </g>
+
+  <line x1="700" y1="1030" x2="700" y2="1070" stroke="#4059aa" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Tracking -->
+  <g>
+    <rect x="70" y="1080" width="1260" height="125" rx="12" fill="#ffffff" stroke="#c5c5d3"/>
+    <circle cx="125" cy="1142" r="28" fill="#1e3a8a"/>
+    <text x="125" y="1149" text-anchor="middle" font-family="Inter,Arial" font-size="18" font-weight="700" fill="#ffffff">4</text>
+    <text x="180" y="1133" class="node-title">Track Progress</text>
+    <text x="180" y="1160" class="node-body">View the complaint status and a timeline of administrator actions.</text>
+    <text x="180" y="1185" class="small">Status badges should remain visible in list and detail views.</text>
+  </g>
+
+  <line x1="700" y1="1205" x2="700" y2="1245" stroke="#4059aa" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Notifications -->
+  <g>
+    <rect x="70" y="1255" width="1260" height="105" rx="12" fill="#ffffff" stroke="#c5c5d3"/>
+    <circle cx="125" cy="1307" r="28" fill="#1e3a8a"/>
+    <text x="125" y="1314" text-anchor="middle" font-family="Inter,Arial" font-size="18" font-weight="700" fill="#ffffff">5</text>
+    <text x="180" y="1298" class="node-title">Receive Notifications</text>
+    <text x="180" y="1325" class="node-body">Receive email and/or in-app alerts when complaint status changes.</text>
+  </g>
+
+  <line x1="700" y1="1360" x2="700" y2="1400" stroke="#4059aa" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Resolution -->
+  <g>
+    <rect x="70" y="1410" width="1260" height="105" rx="12" fill="#ffffff" stroke="#c5c5d3"/>
+    <circle cx="125" cy="1462" r="28" fill="#1e3a8a"/>
+    <text x="125" y="1469" text-anchor="middle" font-family="Inter,Arial" font-size="18" font-weight="700" fill="#ffffff">6</text>
+    <text x="180" y="1453" class="node-title">Final Resolution</text>
+    <text x="180" y="1480" class="node-body">View the final response/resolution provided for the complaint.</text>
+  </g>
+
+  <line x1="700" y1="1515" x2="700" y2="1555" stroke="#4059aa" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Feedback -->
+  <g>
+    <rect x="70" y="1565" width="1260" height="105" rx="12" fill="#ffffff" stroke="#c5c5d3"/>
+    <circle cx="125" cy="1617" r="28" fill="#1e3a8a"/>
+    <text x="125" y="1624" text-anchor="middle" font-family="Inter,Arial" font-size="18" font-weight="700" fill="#ffffff">7</text>
+    <text x="180" y="1608" class="node-title">Student Feedback</text>
+    <text x="180" y="1635" class="node-body">Provide feedback after the complaint reaches its final resolution.</text>
+  </g>
+
+  <!-- Footer -->
+  <rect x="70" y="1720" width="1260" height="75" rx="12" fill="#dce1ff"/>
+  <text x="100" y="1752" class="section">UX focus:</text>
+  <text x="210" y="1752" class="node-body">clear actions • visible status • traceable progress • confirmed submission • noticeable updates</text>
+  <text x="100" y="1778" class="small">Source: SCMS User Flows Requirements + Project Proposal</text>
+</svg>
