@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Admin> Admins => Set<Admin>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
+    public DbSet<UserSetting> UserSettings => Set<UserSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -96,6 +97,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Message).IsRequired();
             entity.Property(e => e.UserId).IsRequired();
+        });
+
+        // UserSetting Configuration
+        modelBuilder.Entity<UserSetting>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+            entity.HasIndex(e => e.UserId).IsUnique();
+            entity.Property(e => e.Theme).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Language).IsRequired().HasMaxLength(10);
         });
 
         // Seed Initial Data
