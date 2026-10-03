@@ -62,31 +62,75 @@ SCMS/
 ## Getting Started
 
 ### Prerequisites
-- .NET 8 SDK
-- SQL Server (LocalDB or full instance)
-- Visual Studio 2022 / VS Code
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) *(for the Docker option)*
+- Visual Studio 2022 / VS Code *(for the manual option)*
 
-### Setup
+---
+
+### ▶ Option 1: Run with Docker (Recommended — One Command)
+
+This is the easiest way to get everything running. Docker will spin up the **API**, **Frontend**, and **SQL Server database** automatically.
+
 ```bash
 # Clone the repo
-git clone https://github.com/<org>/SCMS.git
+git clone https://github.com/Dex-Infinity/SCMS.git
 cd SCMS
 
-# Restore dependencies
-dotnet restore
+# Build and start all services
+docker-compose up -d --build
+```
 
-# Apply database migrations
+Once running, open your browser and visit:
+
+| Service | URL |
+|---|---|
+| 🌐 **Frontend (Blazor Web)** | http://localhost:5001 |
+| ⚙️ **Backend API (Swagger UI)** | http://localhost:5000/swagger |
+| 🗄️ **SQL Server** | `localhost,1433` (SA password: `SuperSecretPassword123!`) |
+
+To stop all services:
+```bash
+docker-compose down
+```
+
+---
+
+### ▶ Option 2: Run Manually with .NET CLI
+
+Use this option if you prefer to run each service individually for development.
+
+**1. Clone the repo and restore dependencies:**
+```bash
+git clone https://github.com/Dex-Infinity/SCMS.git
+cd SCMS
+dotnet restore
+```
+
+**2. Apply database migrations** *(requires a local SQL Server or LocalDB instance)*:
+```bash
 cd src/SCMS.Infrastructure
 dotnet ef database update
+```
 
-# Run the API
-cd ../SCMS.API
-dotnet run
+> If you don't have SQL Server, skip this step. The API will automatically fall back to an **in-memory database**.
 
-# Run the Blazor frontend (in a separate terminal)
-cd ../SCMS.Web
+**3. Run the Backend API** *(in Terminal 1)*:
+```bash
+cd src/SCMS.API
 dotnet run
 ```
+The API will be available at: **http://localhost:5000**
+Swagger UI (API docs & testing): **http://localhost:5000/swagger**
+
+**4. Run the Frontend** *(in a new Terminal 2)*:
+```bash
+cd src/SCMS.Web
+dotnet run
+```
+The web app will be available at: **http://localhost:5001**
+
+> **Note:** The root URL `http://localhost:5000` will return a 404 — this is expected. Always use `/swagger` for the backend API.
 
 ## Branching Strategy
 
