@@ -1,0 +1,69 @@
+@* Fixed on desktop (md+); an off-canvas drawer on smaller screens. *@
+
+@if (IsOpen)
+{
+    <div class="fixed inset-0 z-30 bg-black/40 md:hidden" aria-hidden="true" @onclick="CloseAsync"></div>
+}
+
+<nav id="primary-navigation"
+     aria-label="Primary"
+     class="@NavClass">
+    <a href="/" class="flex items-center gap-md border-b border-surface-variant px-md pb-lg focus-visible:outline-2 focus-visible:outline-primary-container">
+        <img src="@Assets["images/crest.svg"]" alt="" class="size-10 shrink-0 object-contain" />
+        <div>
+            <div class="text-lg leading-tight text-primary">SCMS Portal</div>
+            <p class="text-caption text-secondary">Institutional Authority</p>
+        </div>
+    </a>
+
+    <ul class="mt-lg flex flex-1 flex-col gap-base">
+        @foreach (var item in Items)
+        {
+            <li>
+                <NavLink href="@item.Href" Match="NavLinkMatch.Prefix" class="nav-link" ActiveClass="active" @onclick="CloseAsync">
+                    <Icon Name="@item.Icon" />
+                    <span>@item.Label</span>
+                </NavLink>
+            </li>
+        }
+    </ul>
+
+    <div class="mt-auto flex flex-col gap-sm">
+        <a href="@AppRoutes.EmergencySupport"
+           class="flex w-full items-center justify-center gap-2 rounded-lg border border-error px-md py-sm text-label-sm text-error transition-colors hover:bg-error-container focus-visible:outline-2 focus-visible:outline-error"
+           @onclick="CloseAsync">
+            Emergency Support
+        </a>
+        <a href="@AppRoutes.Logout" class="nav-link">
+            <Icon Name="logout" />
+            <span>Logout</span>
+        </a>
+    </div>
+</nav>
+
+@code {
+    private sealed record NavItem(string Label, string Icon, string Href);
+
+    private static readonly NavItem[] Items =
+    [
+        new("Dashboard", "dashboard", AppRoutes.Dashboard),
+        new("My Complaints", "assignment_late", AppRoutes.Complaints),
+        new("Submit New", "add_circle", AppRoutes.SubmitComplaint),
+        new("Resources", "library_books", AppRoutes.Resources),
+        new("History", "history", AppRoutes.History)
+    ];
+
+    /// <summary>Only affects screens below "md", where the sidebar is a drawer.</summary>
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private Task CloseAsync() => OnClose.InvokeAsync();
+
+    // Closed on phones: slide off-screen and hide from keyboard/AT. Always visible from "md" up.
+    private string NavClass =>
+        "fixed inset-y-0 left-0 z-40 flex w-64 flex-col gap-base bg-surface px-md py-xl shadow-md transition-[transform,visibility] duration-200 motion-reduce:transition-none md:visible md:z-20 md:translate-x-0 "
+        + (IsOpen ? "visible translate-x-0" : "invisible -translate-x-full");
+}

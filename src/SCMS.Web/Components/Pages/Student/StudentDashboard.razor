@@ -1,0 +1,136 @@
+@page "/dashboard"
+@inject IStudentDashboardService Dashboard
+@inject ICurrentUserService Users
+@inject ILogger<StudentDashboard> Logger
+
+<PageTitle>Dashboard - SCMS Portal</PageTitle>
+
+<div class="mx-auto flex w-full max-w-[1140px] flex-col gap-xl">
+
+    @if (_loadFailed)
+    {
+        <div class="flex flex-col items-start gap-md rounded-xl bg-error-container p-lg text-on-error-container sm:flex-row sm:items-center sm:justify-between" role="alert">
+            <div class="flex items-start gap-3">
+                <Icon Name="error" />
+                <div>
+                    <h1 tabindex="-1" class="text-title-md focus:outline-none">We couldn't load your dashboard</h1>
+                    <p class="text-body-md">Check your connection and try again.</p>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary shrink-0" @onclick="LoadAsync">Try again</button>
+        </div>
+    }
+    else if (_data is null || _user is null)
+    {
+        <div role="status" aria-label="Loading your dashboard" class="flex flex-col gap-xl">
+            <div class="h-40 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"></div>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div class="h-32 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"></div>
+                <div class="h-32 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"></div>
+                <div class="h-32 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"></div>
+            </div>
+            <div class="h-64 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"></div>
+        </div>
+    }
+    else
+    {
+        @* Welcome *@
+        <section class="flex flex-col items-start justify-between gap-6 rounded-xl border border-surface-variant bg-surface-container-lowest p-lg shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] md:flex-row md:items-end">
+            <div>
+                <h1 tabindex="-1" class="text-headline-lg font-bold tracking-tight text-on-surface focus:outline-none md:text-[40px] md:leading-[48px]">Welcome back, @_user.FirstName.</h1>
+                <p class="mt-2 max-w-2xl text-body-lg text-on-surface-variant">
+                    Here is the current status of your submitted complaints. We are processing your recent requests.
+                </p>
+            </div>
+            <a href="@AppRoutes.SubmitComplaint" class="btn btn-primary bg-primary px-6 py-3 whitespace-nowrap shadow-sm hover:bg-primary/90">
+                <Icon Name="add" />
+                Submit Complaint
+            </a>
+        </section>
+
+        @* Status summary *@
+        <section aria-label="Complaint summary" class="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <StatCard Label="Total Filed" Value="_data.TotalFiled" Icon="folder" />
+            <StatCard Label="Pending Review" Value="_data.PendingReview" Icon="pending_actions"
+                      IconClass="text-tertiary-container" AccentClass="border-l-4 border-l-tertiary-container" />
+            <StatCard Label="Resolved" Value="_data.Resolved" Icon="check_circle"
+                      IconClass="text-primary" AccentClass="border-l-4 border-l-primary" />
+        </section>
+
+        @* Recent complaints *@
+        <section class="overflow-hidden rounded-xl border border-surface-variant bg-surface-container-lowest shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div class="flex items-center justify-between border-b border-surface-variant p-lg">
+                <h2 class="text-title-md text-on-surface">Recent Complaints</h2>
+                <a href="@AppRoutes.Complaints" class="text-label-sm text-primary hover:underline">View All</a>
+            </div>
+
+            @if (_data.Recent.Count == 0)
+            {
+                <div class="flex flex-col items-center gap-md p-xl text-center">
+                    <p class="text-body-md text-secondary">You haven't filed any complaints yet.</p>
+                    <a href="@AppRoutes.SubmitComplaint" class="btn btn-primary">Submit your first complaint</a>
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-left">
+                        <caption class="sr-only">Your most recent complaints</caption>
+                        <thead>
+                            <tr class="border-b border-surface-variant bg-surface-container-low">
+                                <th scope="col" class="p-4 text-label-sm font-semibold text-on-surface-variant">ID</th>
+                                <th scope="col" class="p-4 text-label-sm font-semibold text-on-surface-variant">Subject</th>
+                                <th scope="col" class="p-4 text-label-sm font-semibold text-on-surface-variant">Category</th>
+                                <th scope="col" class="p-4 text-label-sm font-semibold text-on-surface-variant">Date Submitted</th>
+                                <th scope="col" class="p-4 text-label-sm font-semibold text-on-surface-variant">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-surface-variant text-body-md text-on-surface">
+                            @foreach (var complaint in _data.Recent)
+                            {
+                                <tr @key="complaint.Id" class="group transition-colors hover:bg-surface-container-low/50">
+                                    <td class="p-4 font-medium whitespace-nowrap text-secondary">#@complaint.Reference</td>
+                                    <td class="p-4">
+                                        <a href="@AppRoutes.ComplaintDetails(complaint.Id)" class="transition-colors group-hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary-container">@complaint.Subject</a>
+                                    </td>
+                                    <td class="p-4 text-on-surface-variant">@complaint.Category</td>
+                                    <td class="p-4 whitespace-nowrap text-on-surface-variant">@complaint.SubmittedAt.ToString("MMM dd, yyyy")</td>
+                                    <td class="p-4"><StatusBadge Status="complaint.Status" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+</div>
+
+@code {
+    private StudentDashboardData? _data;
+    private CurrentUser? _user;
+    private bool _loadFailed;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loadFailed = false;
+        _data = null;
+
+        try
+        {
+            var userTask = Users.GetAsync();
+            var dataTask = Dashboard.GetAsync();
+            await Task.WhenAll(userTask, dataTask);
+
+            _user = await userTask;
+            _data = await dataTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load the student dashboard");
+            _loadFailed = true;
+        }
+    }
+}

@@ -1,0 +1,79 @@
+<header class="sticky top-0 z-10 flex h-14 items-center gap-md border-b border-outline-variant/30 bg-surface-container-lowest px-md shadow-sm md:px-lg">
+    @* Phones: menu button + short brand (the sidebar is a drawer below "md") *@
+    <div class="flex items-center gap-sm md:hidden">
+        <button type="button"
+                class="icon-btn text-primary"
+                aria-label="Open navigation menu"
+                aria-controls="primary-navigation"
+                @onclick="OnMenuClick">
+            <Icon Name="menu" />
+        </button>
+        <span class="text-title-md font-bold text-primary">SCMS</span>
+    </div>
+
+    <SearchBar OnSearch="OnSearch" />
+
+    <div class="flex items-center gap-1 sm:gap-4 md:ml-auto">
+        <a href="@AppRoutes.Notifications" class="icon-btn" aria-label="@NotificationsLabel">
+            <Icon Name="notifications" />
+            @if (UnreadNotifications > 0)
+            {
+                <span class="absolute top-2 right-2 size-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest" aria-hidden="true"></span>
+            }
+        </a>
+
+        <a href="@AppRoutes.Settings" class="icon-btn hidden sm:inline-flex" aria-label="Settings">
+            <Icon Name="settings" />
+        </a>
+
+        <a href="@AppRoutes.Profile"
+           class="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-container"
+           aria-label="Profile: @UserName">
+            @if (!string.IsNullOrWhiteSpace(AvatarUrl))
+            {
+                <img src="@AvatarUrl" alt="" class="size-8 rounded-full border border-surface-variant object-cover" />
+            }
+            else
+            {
+                <span class="flex size-8 items-center justify-center rounded-full border border-surface-variant bg-primary-fixed text-caption font-semibold text-on-primary-fixed-variant" aria-hidden="true">@Initials</span>
+            }
+        </a>
+    </div>
+</header>
+
+@code {
+    [Parameter, EditorRequired]
+    public string UserName { get; set; } = string.Empty;
+
+    /// <summary>Optional photo. Falls back to the user's initials.</summary>
+    [Parameter]
+    public string? AvatarUrl { get; set; }
+
+    [Parameter]
+    public int UnreadNotifications { get; set; }
+
+    /// <summary>Opens the sidebar drawer on small screens.</summary>
+    [Parameter]
+    public EventCallback OnMenuClick { get; set; }
+
+    /// <summary>Forwarded from the search bar; leave unset to use its default navigation.</summary>
+    [Parameter]
+    public EventCallback<string> OnSearch { get; set; }
+
+    private string NotificationsLabel =>
+        UnreadNotifications > 0 ? "Notifications, " + UnreadNotifications + " unread" : "Notifications";
+
+    private string Initials
+    {
+        get
+        {
+            var parts = UserName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return parts.Length switch
+            {
+                0 => "?",
+                1 => parts[0][..1].ToUpperInvariant(),
+                _ => string.Concat(parts[0][..1], parts[^1][..1]).ToUpperInvariant()
+            };
+        }
+    }
+}

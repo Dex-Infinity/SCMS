@@ -1,0 +1,102 @@
+@inject NavigationManager Navigation
+
+@* From "md" up this is a persistent search pill. On phones it collapses to an icon that opens a full-width bar over the header. *@
+<div class="@RootClass" role="search">
+    @if (!_open)
+    {
+        <button type="button" class="icon-btn md:hidden" aria-label="Search" aria-expanded="false" @onclick="Open">
+            <Icon Name="search" />
+        </button>
+    }
+
+    <form class="@FormClass" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+        <Icon Name="search" Class="text-on-surface-variant" />
+        <input @ref="_input"
+               type="text"
+               enterkeyhint="search"
+               autocomplete="off"
+               class="min-w-0 flex-1 bg-transparent p-0 text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none"
+               placeholder="@Placeholder"
+               aria-label="@Placeholder"
+               @bind="_query"
+               @bind:event="oninput"
+               @onkeydown="OnKeyDown" />
+        <button type="button" class="icon-btn size-8 md:hidden" aria-label="Close search" @onclick="Close">
+            <Icon Name="close" Class="text-[20px]" />
+        </button>
+    </form>
+</div>
+
+@code {
+    [Parameter]
+    public string Placeholder { get; set; } = "Search complaints, resources...";
+
+    /// <summary>
+    /// Raised with the trimmed query when the user presses Enter. If nobody handles it,
+    /// the bar navigates to <see cref="AppRoutes.Search"/> with ?q=...
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnSearch { get; set; }
+
+    private ElementReference _input;
+    private bool _open;
+    private bool _focusPending;
+    private string _query = string.Empty;
+
+    private string RootClass => _open
+        ? "absolute inset-0 z-10 flex items-center bg-surface-container-lowest px-md md:static md:z-auto md:max-w-[28rem] md:flex-1 md:bg-transparent md:px-0"
+        : "ml-auto md:ml-0 md:max-w-[28rem] md:flex-1";
+
+    private string FormClass =>
+        "w-full items-center gap-2 rounded-full border border-surface-variant bg-surface-container-low px-4 py-2 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary "
+        + (_open ? "flex" : "hidden md:flex");
+
+    private void Open()
+    {
+        _open = true;
+        _focusPending = true;
+    }
+
+    private void Close()
+    {
+        _open = false;
+        _query = string.Empty;
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            Close();
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        var query = _query.Trim();
+        if (query.Length == 0)
+        {
+            return;
+        }
+
+        if (OnSearch.HasDelegate)
+        {
+            await OnSearch.InvokeAsync(query);
+        }
+        else
+        {
+            Navigation.NavigateTo($"{AppRoutes.Search}?q={Uri.EscapeDataString(query)}");
+        }
+
+        Close();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusPending)
+        {
+            _focusPending = false;
+            await _input.FocusAsync();
+        }
+    }
+}

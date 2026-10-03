@@ -1,0 +1,27 @@
+<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium @Classes">@Label</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public ComplaintStatus Status { get; set; }
+
+    private string Label => Status switch
+    {
+        ComplaintStatus.Pending => "Pending",
+        ComplaintStatus.UnderReview => "Under Review",
+        ComplaintStatus.Assigned => "Assigned",
+        ComplaintStatus.Resolved => "Resolved",
+        ComplaintStatus.Rejected => "Rejected",
+        _ => Status.ToString()
+    };
+
+    // Tinted background + dark text of the same hue. Keep the class names literal so Tailwind can find them.
+    private string Classes => Status switch
+    {
+        ComplaintStatus.Pending => "bg-tertiary-fixed text-on-tertiary-fixed",
+        ComplaintStatus.UnderReview => "bg-primary-fixed text-on-primary-fixed",
+        ComplaintStatus.Assigned => "bg-secondary-fixed text-on-secondary-fixed",
+        ComplaintStatus.Resolved => "bg-secondary-container text-on-secondary-container",
+        ComplaintStatus.Rejected => "bg-error-container text-on-error-container",
+        _ => "bg-surface-variant text-on-surface-variant"
+    };
+}

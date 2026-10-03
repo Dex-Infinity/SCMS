@@ -1,0 +1,45 @@
+@inherits LayoutComponentBase
+@inject ICurrentUserService Users
+
+<div class="min-h-screen bg-surface text-on-surface">
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:fixed focus:top-md focus:left-md focus:z-50 focus:rounded-lg focus:bg-primary-container focus:px-md focus:py-sm focus:text-on-primary">
+        Skip to main content
+    </a>
+
+    <Sidebar IsOpen="_sidebarOpen" OnClose="CloseSidebar" />
+
+    <div class="flex min-h-screen flex-col md:pl-64">
+        <TopNavbar UserName="@(_user?.DisplayName ?? string.Empty)"
+                   UnreadNotifications="@_unreadNotifications"
+                   OnMenuClick="OpenSidebar" />
+
+        <main id="main-content" class="flex-1 p-margin-mobile md:p-xl">
+            @Body
+        </main>
+    </div>
+</div>
+
+<div id="blazor-error-ui"
+     class="fixed inset-x-0 bottom-0 z-50 hidden items-center justify-between gap-md bg-error-container px-lg py-sm text-label-sm text-on-error-container shadow-md"
+     role="alert">
+    <span>An unexpected error occurred.</span>
+    <span class="flex items-center gap-md">
+        <a href="." class="font-semibold underline">Reload</a>
+        <button type="button" class="dismiss" aria-label="Dismiss">&#x2715;</button>
+    </span>
+</div>
+
+@code {
+    // TODO: replace with a real notification count.
+    private readonly int _unreadNotifications = 0;
+
+    private CurrentUser? _user;
+
+    private bool _sidebarOpen;
+
+    protected override async Task OnInitializedAsync() => _user = await Users.GetAsync();
+
+    private void OpenSidebar() => _sidebarOpen = true;
+    private void CloseSidebar() => _sidebarOpen = false;
+}

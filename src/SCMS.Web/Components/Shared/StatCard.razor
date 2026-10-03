@@ -1,0 +1,27 @@
+<div class="flex h-32 flex-col justify-between rounded-xl border border-surface-variant bg-surface-container-lowest p-lg shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)] @AccentClass">
+    <div class="flex items-center justify-between">
+        <span class="text-label-sm tracking-wider text-on-surface-variant uppercase">@Label</span>
+        <Icon Name="@Icon" Class="@IconClass" />
+    </div>
+    <div class="text-display-lg text-on-surface">@Value</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public int Value { get; set; }
+
+    /// <summary>Material Symbols name shown top-right.</summary>
+    [Parameter, EditorRequired]
+    public string Icon { get; set; } = string.Empty;
+
+    /// <summary>Text color class for the icon, e.g. "text-primary".</summary>
+    [Parameter]
+    public string IconClass { get; set; } = "text-secondary";
+
+    /// <summary>Optional extra classes, e.g. a colored left border: "border-l-4 border-l-primary".</summary>
+    [Parameter]
+    public string? AccentClass { get; set; }
+}

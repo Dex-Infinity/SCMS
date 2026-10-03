@@ -1,0 +1,22 @@
+@page "/not-found"
+@layout MainLayout
+
+<PageTitle>Page not found - SCMS Portal</PageTitle>
+
+<div class="mx-auto w-full max-w-4xl">
+    <div class="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-lg text-center shadow-sm md:p-xl">
+        <span class="mx-auto mb-md flex size-14 items-center justify-center rounded-full bg-primary-fixed text-primary-container">
+            <Icon Name="search_off" Class="text-[32px]" />
+        </span>
+
+        <h1 tabindex="-1" class="mb-2 text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">Page not found</h1>
+        <p class="mx-auto max-w-prose text-body-md text-secondary">
+            The page you're looking for doesn't exist or may have moved. Check the address, or use the menu to find what you need.
+        </p>
+
+        <div class="mt-xl flex flex-col justify-center gap-md sm:flex-row">
+            <a href="@AppRoutes.Complaints" class="btn btn-secondary">View my complaints</a>
+            <a href="@AppRoutes.SubmitComplaint" class="btn btn-primary">Submit new complaint</a>
+        </div>
+    </div>
+</div>

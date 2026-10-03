@@ -1,0 +1,314 @@
+@page "/submit-complaint"
+@inject IComplaintSubmissionService Submission
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject ILogger<SubmitComplaint> Logger
+
+<PageTitle>Submit New Complaint - SCMS Portal</PageTitle>
+
+<div class="mx-auto w-full max-w-[800px]">
+
+    @if (_step == Step.Submitted)
+    {
+        <div class="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-lg text-center shadow-sm md:p-xl" role="status">
+            <span class="mx-auto mb-md flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                <Icon Name="check_circle" Filled="true" Class="text-[32px]" />
+            </span>
+            <h1 @ref="_heading" tabindex="-1" class="mb-2 text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">Complaint submitted</h1>
+            <p class="mx-auto max-w-prose text-body-md text-secondary">
+                We've received your complaint. Keep this reference number to follow its progress.
+            </p>
+            <p class="mt-md inline-block rounded-lg bg-surface-container-low px-md py-sm text-title-md tracking-wide text-primary">@_reference</p>
+
+            <div class="mt-xl flex flex-col justify-center gap-md sm:flex-row">
+                <button type="button" class="btn btn-secondary" @onclick="StartNew">Submit another complaint</button>
+                <a href="@AppRoutes.Complaints" class="btn btn-primary">View my complaints</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="mb-xl">
+            <h1 tabindex="-1" class="mb-2 text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">Submit New Complaint</h1>
+            <p class="text-body-md text-secondary">
+                Please provide detailed information to help us process your request efficiently. All submissions are handled with strict confidentiality.
+            </p>
+        </div>
+
+        <div class="overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm">
+            <StepIndicator Steps="_stepLabels" Current="CurrentStepNumber" />
+
+            @if (_step == Step.Details)
+            {
+                <EditForm @key="_formVersion" Model="_model" OnValidSubmit="GoToReview" class="flex flex-col gap-xl p-lg md:p-xl" novalidate>
+                    <DataAnnotationsValidator />
+                    <h2 @ref="_heading" tabindex="-1" class="sr-only">Complaint details</h2>
+
+                    <div class="grid grid-cols-1 gap-lg md:grid-cols-2">
+                        <div class="flex flex-col gap-2">
+                            <label class="field-label" for="category">Category <span class="text-error" aria-hidden="true">*</span></label>
+                            <div class="relative">
+                                <InputSelect id="category" class="field-input appearance-none pr-10" @bind-Value="_model.Category" aria-required="true">
+                                    <option value="" disabled>Select a category</option>
+                                    @foreach (var category in ComplaintCategories.All)
+                                    {
+                                        <option value="@category.Value">@category.Label</option>
+                                    }
+                                </InputSelect>
+                                <Icon Name="expand_more" Class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-outline" />
+                            </div>
+                            <ValidationMessage For="() => _model.Category" />
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <label class="field-label" for="incident_date">Date of Incident (Optional)</label>
+                            <InputDate id="incident_date" class="field-input" @bind-Value="_model.IncidentDate" max="@_today" />
+                            <ValidationMessage For="() => _model.IncidentDate" />
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-lg">
+                        <div class="flex flex-col gap-2">
+                            <label class="field-label" for="subject">Subject <span class="text-error" aria-hidden="true">*</span></label>
+                            <InputText id="subject" class="field-input" placeholder="Brief summary of the issue" maxlength="200" @bind-Value="_model.Subject" aria-required="true" />
+                            <ValidationMessage For="() => _model.Subject" />
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <label class="field-label" for="description">Detailed Description <span class="text-error" aria-hidden="true">*</span></label>
+                            <InputTextArea id="description" class="field-input resize-y" rows="6" placeholder="Provide as much detail as possible, including names, locations, and chronological events." @bind-Value="_model.Description" aria-required="true" aria-describedby="description-hint" />
+                            <ValidationMessage For="() => _model.Description" />
+                            <p id="description-hint" class="mt-1 text-caption text-outline">Please stick to factual information.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <span class="field-label" id="documents-label">Supporting Documents (Optional)</span>
+                        <FileDropzone Label="Upload supporting documents"
+                                      CurrentFileCount="_files.Count"
+                                      OnFilesSelected="AddFiles" />
+
+                        @if (_files.Count > 0)
+                        {
+                            <ul class="mt-sm flex flex-col gap-sm" aria-label="Attached files">
+                                @foreach (var file in _files)
+                                {
+                                    <li @key="file" class="flex items-center gap-3 rounded-lg border border-outline-variant/60 bg-surface px-md py-sm">
+                                        <Icon Name="@IconFor(file)" Class="text-primary-container" />
+                                        <div class="min-w-0 flex-1">
+                                            <p class="truncate text-label-sm text-on-surface">@file.Name</p>
+                                            <p class="text-caption text-outline">@FileSize.Format(file.Size)</p>
+                                        </div>
+                                        <button type="button" class="icon-btn size-8" aria-label="Remove @file.Name" @onclick="() => RemoveFile(file)">
+                                            <Icon Name="close" Class="text-[20px]" />
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+
+                    <div class="mt-sm flex flex-col-reverse gap-md border-t border-outline-variant/30 pt-lg sm:flex-row sm:justify-end">
+                        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span>Proceed to Review</span>
+                            <Icon Name="arrow_forward" Class="text-[18px]" />
+                        </button>
+                    </div>
+                </EditForm>
+            }
+            else
+            {
+                <div class="flex flex-col gap-xl p-lg md:p-xl">
+                    <div>
+                        <h2 @ref="_heading" tabindex="-1" class="text-title-md text-on-surface focus:outline-none">Review your complaint</h2>
+                        <p class="mt-1 text-body-md text-secondary">Check the details below. Select Submit Complaint when everything is correct.</p>
+                    </div>
+
+                    <dl class="divide-y divide-outline-variant/30 border-y border-outline-variant/30">
+                        <div class="grid gap-1 py-md sm:grid-cols-3 sm:gap-lg">
+                            <dt class="text-label-sm text-secondary">Category</dt>
+                            <dd class="text-body-md text-on-surface sm:col-span-2">@ComplaintCategories.LabelFor(_model.Category)</dd>
+                        </div>
+                        <div class="grid gap-1 py-md sm:grid-cols-3 sm:gap-lg">
+                            <dt class="text-label-sm text-secondary">Date of incident</dt>
+                            <dd class="text-body-md text-on-surface sm:col-span-2">@(_model.IncidentDate?.ToString("MMMM d, yyyy") ?? "Not provided")</dd>
+                        </div>
+                        <div class="grid gap-1 py-md sm:grid-cols-3 sm:gap-lg">
+                            <dt class="text-label-sm text-secondary">Subject</dt>
+                            <dd class="text-body-md break-words text-on-surface sm:col-span-2">@_model.Subject</dd>
+                        </div>
+                        <div class="grid gap-1 py-md sm:grid-cols-3 sm:gap-lg">
+                            <dt class="text-label-sm text-secondary">Description</dt>
+                            <dd class="text-body-md break-words whitespace-pre-wrap text-on-surface sm:col-span-2">@_model.Description</dd>
+                        </div>
+                        <div class="grid gap-1 py-md sm:grid-cols-3 sm:gap-lg">
+                            <dt class="text-label-sm text-secondary">Supporting documents</dt>
+                            <dd class="text-body-md text-on-surface sm:col-span-2">
+                                @if (_files.Count == 0)
+                                {
+                                    <span>None attached</span>
+                                }
+                                else
+                                {
+                                    <ul class="flex flex-col gap-sm">
+                                        @foreach (var file in _files)
+                                        {
+                                            <li class="flex items-center gap-2">
+                                                <Icon Name="@IconFor(file)" Class="text-[20px] text-primary-container" />
+                                                <span class="min-w-0 truncate">@file.Name</span>
+                                                <span class="shrink-0 text-caption text-outline">@FileSize.Format(file.Size)</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </dd>
+                        </div>
+                    </dl>
+
+                    @if (_submitError is not null)
+                    {
+                        <div class="flex items-start gap-3 rounded-lg bg-error-container px-md py-sm text-label-sm text-on-error-container" role="alert">
+                            <Icon Name="error" Class="text-[20px]" />
+                            <p>@_submitError</p>
+                        </div>
+                    }
+
+                    <div class="flex flex-col-reverse gap-md pt-lg sm:flex-row sm:justify-end">
+                        <button type="button" class="btn btn-secondary" disabled="@_submitting" @onclick="BackToEdit">
+                            <Icon Name="arrow_back" Class="text-[18px]" />
+                            <span>Back to edit</span>
+                        </button>
+                        <button type="button" class="btn btn-primary" disabled="@_submitting" @onclick="SubmitAsync">
+                            @if (_submitting)
+                            {
+                                <Icon Name="progress_activity" Class="animate-spin text-[18px] motion-reduce:animate-none" />
+                                <span>Submitting...</span>
+                            }
+                            else
+                            {
+                                <span>Submit Complaint</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private enum Step { Details, Review, Submitted }
+
+    private static readonly IReadOnlyList<string> _stepLabels = ["Details", "Review"];
+
+    private readonly List<IBrowserFile> _files = [];
+    private readonly string _today = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+
+    private ComplaintFormModel _model = new();
+    private Step _step = Step.Details;
+    private int _formVersion;
+    private bool _submitting;
+    private string? _submitError;
+    private string? _reference;
+
+    private ElementReference _heading;
+    private bool _focusHeading;
+
+    private int CurrentStepNumber => _step == Step.Details ? 1 : 2;
+
+    private void AddFiles(IReadOnlyList<IBrowserFile> incoming)
+    {
+        foreach (var file in incoming)
+        {
+            var isDuplicate = _files.Any(f => f.Name == file.Name && f.Size == file.Size);
+            if (!isDuplicate)
+            {
+                _files.Add(file);
+            }
+        }
+    }
+
+    private void RemoveFile(IBrowserFile file) => _files.Remove(file);
+
+    private static string IconFor(IBrowserFile file) =>
+        Path.GetExtension(file.Name).Equals(".pdf", StringComparison.OrdinalIgnoreCase) ? "picture_as_pdf" : "image";
+
+    private void GoToReview()
+    {
+        _submitError = null;
+        MoveTo(Step.Review);
+    }
+
+    private void BackToEdit()
+    {
+        _submitError = null;
+        MoveTo(Step.Details);
+    }
+
+    private void Cancel()
+    {
+        // TODO: confirm if the form has unsaved input.
+        Navigation.NavigateTo(AppRoutes.Dashboard);
+    }
+
+    private void StartNew()
+    {
+        _model = new ComplaintFormModel();
+        _files.Clear();
+        _reference = null;
+        _submitError = null;
+        _formVersion++; // rebuilds the form so validation state and the file picker reset too
+        MoveTo(Step.Details);
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_submitting)
+        {
+            return;
+        }
+
+        _submitting = true;
+        _submitError = null;
+
+        try
+        {
+            var result = await Submission.SubmitAsync(_model, _files);
+            _reference = result.ReferenceNumber;
+            MoveTo(Step.Submitted);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Complaint submission failed");
+            _submitError = "We couldn't submit your complaint. Check your connection and try again. Your details are still saved on this page.";
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    // Changes step and asks OnAfterRenderAsync to scroll to the top and move focus to the new step's heading.
+    private void MoveTo(Step step)
+    {
+        _step = step;
+        _focusHeading = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_focusHeading)
+        {
+            return;
+        }
+
+        _focusHeading = false;
+        await JS.InvokeVoidAsync("scrollTo", 0, 0);
+
+        if (_heading.Context is not null)
+        {
+            await _heading.FocusAsync(preventScroll: true);
+        }
+    }
+}

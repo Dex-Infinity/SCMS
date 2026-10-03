@@ -1,0 +1,120 @@
+<div class="@WrapperClass"
+     @ondragenter="OnDragEnter"
+     @ondragleave="OnDragLeave"
+     @ondrop="OnDrop">
+    <Icon Name="cloud_upload" Class="@IconClass" />
+    <p class="mb-1 text-label-sm text-on-surface">Click to upload or drag and drop</p>
+    <p class="text-caption text-outline">@Hint</p>
+
+    @* The real file input sits invisibly over the whole area, so clicking and native drag-and-drop both work. *@
+    <InputFile @key="_inputKey"
+               OnChange="HandleChangeAsync"
+               multiple
+               accept="@AcceptAttribute"
+               aria-label="@Label"
+               class="absolute inset-0 size-full cursor-pointer opacity-0" />
+</div>
+
+@if (_errors.Count > 0)
+{
+    <ul class="mt-sm flex flex-col gap-1 text-caption text-error" role="alert">
+        @foreach (var error in _errors)
+        {
+            <li>@error</li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = "Upload supporting documents";
+
+    /// <summary>Helper text under the prompt. Keep in sync with the limits below.</summary>
+    [Parameter]
+    public string Hint { get; set; } = "PDF, JPG, or PNG (Max. 10MB)";
+
+    [Parameter]
+    public IReadOnlyList<string> AcceptedExtensions { get; set; } = [".pdf", ".jpg", ".jpeg", ".png"];
+
+    [Parameter]
+    public long MaxFileSizeBytes { get; set; } = 10 * 1024 * 1024;
+
+    [Parameter]
+    public int MaxFiles { get; set; } = 5;
+
+    /// <summary>How many files the parent already holds, so the total limit can be enforced.</summary>
+    [Parameter]
+    public int CurrentFileCount { get; set; }
+
+    /// <summary>Raised with the files that passed validation.</summary>
+    [Parameter]
+    public EventCallback<IReadOnlyList<IBrowserFile>> OnFilesSelected { get; set; }
+
+    private readonly List<string> _errors = [];
+    private bool _dragging;
+    private int _inputKey;
+
+    private string AcceptAttribute => string.Join(",", AcceptedExtensions);
+
+    private string WrapperClass =>
+        "group relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-xl text-center transition-colors focus-within:ring-2 focus-within:ring-primary/40 "
+        + (_dragging
+            ? "border-primary bg-primary-fixed/40"
+            : "border-outline-variant bg-surface hover:bg-surface-container-low");
+
+    private string IconClass =>
+        "mb-sm text-4xl transition-colors " + (_dragging ? "text-primary" : "text-outline group-hover:text-primary");
+
+    private void OnDragEnter() => _dragging = true;
+    private void OnDragLeave() => _dragging = false;
+    private void OnDrop() => _dragging = false;
+
+    private async Task HandleChangeAsync(InputFileChangeEventArgs e)
+    {
+        _errors.Clear();
+        _dragging = false;
+
+        if (e.FileCount == 0)
+        {
+            return;
+        }
+
+        var accepted = new List<IBrowserFile>();
+        var slotsLeft = Math.Max(0, MaxFiles - CurrentFileCount);
+        var limitReported = false;
+
+        foreach (var file in e.GetMultipleFiles(e.FileCount))
+        {
+            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+
+            if (!AcceptedExtensions.Contains(extension))
+            {
+                _errors.Add($"{file.Name} isn't a supported file type. Use PDF, JPG, or PNG.");
+            }
+            else if (file.Size > MaxFileSizeBytes)
+            {
+                _errors.Add($"{file.Name} is {FileSize.Format(file.Size)}. Files must be {FileSize.Format(MaxFileSizeBytes)} or smaller.");
+            }
+            else if (accepted.Count >= slotsLeft)
+            {
+                if (!limitReported)
+                {
+                    _errors.Add($"You can attach up to {MaxFiles} files. Remove one to add another.");
+                    limitReported = true;
+                }
+            }
+            else
+            {
+                accepted.Add(file);
+            }
+        }
+
+        // Re-create the <input> so picking the same file again after removing it still fires a change event.
+        _inputKey++;
+
+        if (accepted.Count > 0)
+        {
+            await OnFilesSelected.InvokeAsync(accepted);
+        }
+    }
+}

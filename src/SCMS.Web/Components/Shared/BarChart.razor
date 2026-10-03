@@ -1,0 +1,57 @@
+@using System.Globalization
+
+@* Vertical bar chart. Bar heights are real pixel heights scaled to the largest value. *@
+<div role="img" aria-label="@AriaLabel">
+    <div class="flex items-end gap-sm" style="height: @(PlotHeight + 24)px" aria-hidden="true">
+        @for (var i = 0; i < Items.Count; i++)
+        {
+            var item = Items[i];
+            <div class="flex h-full min-w-0 flex-1 flex-col justify-end" title="@(item.Label + ": " + FormatValue(item.Value))">
+                <div class="mb-1 h-5 text-center text-caption text-on-surface-variant">@FormatValue(item.Value)</div>
+                <div class="w-full rounded-t-sm transition-all hover:brightness-110 @(Palette[i % Palette.Length])" style="height: @(BarHeight(item.Value))px"></div>
+            </div>
+        }
+    </div>
+
+    <div class="mt-2 flex gap-sm" aria-hidden="true">
+        @foreach (var item in Items)
+        {
+            <div class="min-w-0 flex-1 truncate text-center text-caption text-on-surface">@item.Label</div>
+        }
+    </div>
+</div>
+
+@code {
+    // Keep these class names literal so Tailwind can find them.
+    private static readonly string[] Palette =
+    [
+        "bg-primary-container",
+        "bg-secondary-container",
+        "bg-primary-fixed-dim",
+        "bg-surface-tint",
+        "bg-outline-variant"
+    ];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ChartPoint> Items { get; set; } = [];
+
+    /// <summary>Spoken summary for screen readers, e.g. "Complaints by category".</summary>
+    [Parameter]
+    public string Title { get; set; } = "Bar chart";
+
+    /// <summary>Height in pixels of the tallest bar.</summary>
+    [Parameter]
+    public int PlotHeight { get; set; } = 240;
+
+    private double _max;
+
+    private string AriaLabel =>
+        Title + ": " + string.Join(", ", Items.Select(i => i.Label + " " + FormatValue(i.Value)));
+
+    protected override void OnParametersSet() => _max = Items.Count == 0 ? 0 : Items.Max(i => i.Value);
+
+    private int BarHeight(double value) =>
+        value <= 0 || _max <= 0 ? 0 : Math.Max(4, (int)Math.Round(value / _max * PlotHeight));
+
+    private static string FormatValue(double value) => value.ToString("0", CultureInfo.InvariantCulture);
+}
