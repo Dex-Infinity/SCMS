@@ -1,41 +1,40 @@
-version: '3.8'
-
 services:
-  sqldata:
+  sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: scms-sqlserver
     environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=SuperSecretPassword123!
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "SCMS@SqlServer2026!"
     ports:
       - "1433:1433"
     volumes:
-      - sqlvolume:/var/opt/mssql
+      - sqlserver_data:/var/opt/mssql
 
-  scms.api:
-    image: scmsapi
+  api:
     build:
       context: .
       dockerfile: src/SCMS.API/Dockerfile
-    ports:
-      - "5000:8080"
+    container_name: scms-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=sqldata;Database=SCMSDb;User=sa;Password=SuperSecretPassword123!;TrustServerCertificate=True;
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SCMSDb;User Id=sa;Password=SCMS@SqlServer2026!;TrustServerCertificate=True;MultipleActiveResultSets=True"
+    ports:
+      - "8080:8080"
     depends_on:
-      - sqldata
+      - sqlserver
 
-  scms.web:
-    image: scmsweb
+  web:
     build:
       context: .
       dockerfile: src/SCMS.Web/Dockerfile
+    container_name: scms-web
     ports:
-      - "5001:8080"
+      - "8081:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ApiSettings__BaseUrl=http://scms.api:8080
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ApiSettings__BaseUrl: "http://api:8080"
     depends_on:
-      - scms.api
+      - api
 
 volumes:
-  sqlvolume:
+  sqlserver_data:

@@ -65,16 +65,16 @@ builder.Services.AddSwaggerGen(options =>
 
 // Configure EF Core DbContext with SQL Server (and fallback to InMemory for seamless dev testing)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    connectionString =
+        "Server=sqlserver,1433;Database=SCMSDb;User Id=sa;Password=SCMS@SqlServer2026!;TrustServerCertificate=True;MultipleActiveResultSets=True";
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    if (!string.IsNullOrEmpty(connectionString))
-    {
-        options.UseSqlServer(connectionString);
-    }
-    else
-    {
-        options.UseInMemoryDatabase("SCMSDb_Dev");
-    }
+    options.UseSqlServer(connectionString);
 });
 
 // Configure ASP.NET Core Identity
