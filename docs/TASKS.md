@@ -9,12 +9,16 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 - [x] Build Complaint endpoints — create, get by student, get by ID, update status, assign to department
 - [x] Build Notification service — triggers updates on status change
 - [x] Write Swagger/OpenAPI docs for the API
+- [ ] Build NotificationsController to expose user notifications
+- [ ] Update ComplaintsController to allow students to fetch their own complaint details by ID
 
 **Amartey Felix Laryea**
 - [x] Implement ASP.NET Identity — registration, login, student/admin roles, JWT/cookie auth
 - [x] Build Attachment handling — upload/download supporting documents
 - [x] Build Reports/Analytics endpoints — counts by status, department, resolution time
 - [x] Add validation and centralized error handling
+- [ ] Build Profile API endpoint for students to update personal details
+- [ ] Build Settings API endpoint to save user preferences
 
 ## Frontend Developer
 
@@ -23,12 +27,15 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 - [ ] Build the admin dashboard (queue, filters, assign/update/resolve actions)
 - [ ] Build the notifications UI (in-app alerts for status changes)
 - [ ] Add client-side validation and loading/error states
+- [ ] Build the User Profile page (`/profile`)
+- [ ] Build the Settings page (`/settings`)
 
 **Elikplim Yevu**
 - [x] Build the student complaint submission form (with file attachment upload)
 - [x] Build the student complaint tracking page (list + live status)
 - [x] Build the management reporting dashboard (charts from the analytics API)
 - [ ] Wire all pages to backend API endpoints
+- [ ] Build the "All Complaints" list page (`/complaints`) and details page (`/complaints/{id}`)
 
 ## UI/UX Designer
 

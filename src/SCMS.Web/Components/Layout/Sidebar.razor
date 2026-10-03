@@ -29,11 +29,7 @@
     </ul>
 
     <div class="mt-auto flex flex-col gap-sm">
-        <a href="@AppRoutes.EmergencySupport"
-           class="flex w-full items-center justify-center gap-2 rounded-lg border border-error px-md py-sm text-label-sm text-error transition-colors hover:bg-error-container focus-visible:outline-2 focus-visible:outline-error"
-           @onclick="CloseAsync">
-            Emergency Support
-        </a>
+
         <a href="@AppRoutes.Logout" class="nav-link">
             <Icon Name="logout" />
             <span>Logout</span>
@@ -49,7 +45,6 @@
         new("Dashboard", "dashboard", AppRoutes.Dashboard),
         new("My Complaints", "assignment_late", AppRoutes.Complaints),
         new("Submit New", "add_circle", AppRoutes.SubmitComplaint),
-        new("Resources", "library_books", AppRoutes.Resources),
         new("History", "history", AppRoutes.History)
     ];
 
