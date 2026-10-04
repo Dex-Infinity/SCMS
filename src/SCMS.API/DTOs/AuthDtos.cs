@@ -21,8 +21,6 @@ public class RegisterDto
     [StringLength(100, MinimumLength = 6)]
     public string Password { get; set; } = string.Empty;
 
-    public string? IndexNumber { get; set; }
-    public int? DepartmentId { get; set; }
     [Required]
     [StringLength(50, MinimumLength = 3)]
     public string IndexNumber { get; set; } = string.Empty;
@@ -52,5 +50,4 @@ public class AuthResponseDto
     public string FullName { get; set; } = string.Empty;
     public int? StudentId { get; set; }
     public List<string> Roles { get; set; } = new();
-    public int? StudentId { get; set; }
 }
