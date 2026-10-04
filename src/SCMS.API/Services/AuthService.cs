@@ -20,16 +20,6 @@ public class AuthService : IAuthService
 
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITokenService _tokenService;
-    private readonly ApplicationDbContext _context;
-
-    public AuthService(
-        UserManager<ApplicationUser> userManager,
-        ITokenService tokenService,
-        ApplicationDbContext context)
-    {
-        _userManager = userManager;
-        _tokenService = tokenService;
-        _context = context;
     private readonly ApplicationDbContext _dbContext;
 
     public AuthService(UserManager<ApplicationUser> userManager, ITokenService tokenService, ApplicationDbContext dbContext)
@@ -113,22 +103,6 @@ public class AuthService : IAuthService
             throw;
         }
 
-        // Ensure matching Student domain entity exists for complaints & foreign keys
-        var student = await _context.Students.FirstOrDefaultAsync(s => s.Email == registerDto.Email);
-        if (student == null)
-        {
-            student = new Student
-            {
-                FullName = registerDto.FullName,
-                Email = registerDto.Email,
-                IndexNumber = !string.IsNullOrWhiteSpace(registerDto.IndexNumber) ? registerDto.IndexNumber : registerDto.UserName,
-                DepartmentId = registerDto.DepartmentId ?? 1,
-                CreatedAt = DateTime.UtcNow
-            };
-            _context.Students.Add(student);
-            await _context.SaveChangesAsync();
-        }
-
         var roles = new List<string> { StudentRole };
         var token = await _tokenService.CreateTokenAsync(user, roles, student.Id);
 
@@ -139,8 +113,6 @@ public class AuthService : IAuthService
             Email = user.Email!,
             UserName = user.UserName!,
             FullName = user.FullName,
-            StudentId = student.Id,
-            Roles = roles
             Roles = roles,
             StudentId = student.Id
         };
@@ -162,30 +134,26 @@ public class AuthService : IAuthService
 
         var roles = (await _userManager.GetRolesAsync(user)).ToList();
 
-        int? studentId = null;
-        if (roles.Contains(StudentRole))
-        {
-            var student = await _context.Students.FirstOrDefaultAsync(s => s.Email == user.Email);
-            if (student == null)
-            {
-                student = new Student
-                {
-                    FullName = user.FullName,
-                    Email = user.Email!,
-                    IndexNumber = user.UserName ?? user.Email!,
-                    DepartmentId = 1,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.Students.Add(student);
-                await _context.SaveChangesAsync();
-            }
-            studentId = student.Id;
-        }
-
         var studentId = await _dbContext.Students
             .Where(student => student.Email == user.Email)
             .Select(student => (int?)student.Id)
             .FirstOrDefaultAsync();
+
+        if (studentId == null && roles.Contains(StudentRole))
+        {
+            var newStudent = new Student
+            {
+                FullName = user.FullName,
+                Email = user.Email!,
+                IndexNumber = user.UserName ?? user.Email!,
+                DepartmentId = 1,
+                CreatedAt = DateTime.UtcNow
+            };
+            _dbContext.Students.Add(newStudent);
+            await _dbContext.SaveChangesAsync();
+            studentId = newStudent.Id;
+        }
+
         var token = await _tokenService.CreateTokenAsync(user, roles, studentId);
 
         return new AuthResponseDto
@@ -195,8 +163,6 @@ public class AuthService : IAuthService
             Email = user.Email!,
             UserName = user.UserName!,
             FullName = user.FullName,
-            StudentId = studentId,
-            Roles = roles
             Roles = roles,
             StudentId = studentId
         };

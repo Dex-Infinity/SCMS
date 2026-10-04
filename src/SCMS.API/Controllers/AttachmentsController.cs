@@ -18,27 +18,20 @@ namespace SCMS.API.Controllers;
 public class AttachmentsController : ControllerBase
 {
     private readonly IAttachmentService _attachmentService;
+    private readonly ApplicationDbContext? _dbContext;
     private readonly IComplaintRepository? _complaintRepository;
     private readonly IAttachmentRepository? _attachmentRepository;
-    private readonly ApplicationDbContext? _context;
 
     public AttachmentsController(
         IAttachmentService attachmentService,
+        ApplicationDbContext? dbContext = null,
         IComplaintRepository? complaintRepository = null,
-        IAttachmentRepository? attachmentRepository = null,
-        ApplicationDbContext? context = null)
-    {
-        _attachmentService = attachmentService;
-        _complaintRepository = complaintRepository;
-        _attachmentRepository = attachmentRepository;
-        _context = context;
-    private readonly ApplicationDbContext _dbContext;
-
-    // Inject attachment service
-    public AttachmentsController(IAttachmentService attachmentService, ApplicationDbContext dbContext)
+        IAttachmentRepository? attachmentRepository = null)
     {
         _attachmentService = attachmentService;
         _dbContext = dbContext;
+        _complaintRepository = complaintRepository;
+        _attachmentRepository = attachmentRepository;
     }
 
     // POST api/attachments/complaints/{complaintId} - Upload a supporting document
@@ -55,13 +48,6 @@ public class AttachmentsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        if (!User.IsInRole("Admin"))
-        {
-            if (!await IsComplaintOwnerAsync(complaintId))
-            {
-                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to upload attachments to this complaint." });
-            }
-        }
         var accessError = await EnsureComplaintAccessAsync(complaintId);
         if (accessError != null) return accessError;
 
@@ -89,13 +75,6 @@ public class AttachmentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetByComplaint(int complaintId)
     {
-        if (!User.IsInRole("Admin"))
-        {
-            if (!await IsComplaintOwnerAsync(complaintId))
-            {
-                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to view attachments for this complaint." });
-            }
-        }
         var accessError = await EnsureComplaintAccessAsync(complaintId);
         if (accessError != null) return accessError;
 
@@ -110,31 +89,33 @@ public class AttachmentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Download(int id)
     {
-        if (!User.IsInRole("Admin") && _attachmentRepository != null)
+        int? complaintId = null;
+        if (_attachmentRepository != null)
         {
             var meta = await _attachmentRepository.GetByIdAsync(id);
             if (meta == null)
             {
                 return NotFound(new { message = $"Attachment with ID {id} was not found." });
             }
-
-            if (!await IsComplaintOwnerAsync(meta.ComplaintId))
+            complaintId = meta.ComplaintId;
+        }
+        else if (_dbContext != null)
+        {
+            complaintId = await _dbContext.Attachments
+                .Where(attachment => attachment.Id == id)
+                .Select(attachment => (int?)attachment.ComplaintId)
+                .FirstOrDefaultAsync();
+            if (!complaintId.HasValue)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to download this attachment." });
+                return NotFound(new { message = $"Attachment with ID {id} was not found." });
             }
         }
 
-        var complaintId = await _dbContext.Attachments
-            .Where(attachment => attachment.Id == id)
-            .Select(attachment => (int?)attachment.ComplaintId)
-            .FirstOrDefaultAsync();
-        if (!complaintId.HasValue)
+        if (complaintId.HasValue)
         {
-            return NotFound(new { message = $"Attachment with ID {id} was not found." });
+            var accessError = await EnsureComplaintAccessAsync(complaintId.Value);
+            if (accessError != null) return accessError;
         }
-
-        var accessError = await EnsureComplaintAccessAsync(complaintId.Value);
-        if (accessError != null) return accessError;
 
         var result = await _attachmentService.DownloadAsync(id);
         if (result == null)
@@ -152,31 +133,33 @@ public class AttachmentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
-        if (!User.IsInRole("Admin") && _attachmentRepository != null)
+        int? complaintId = null;
+        if (_attachmentRepository != null)
         {
             var meta = await _attachmentRepository.GetByIdAsync(id);
             if (meta == null)
             {
                 return NotFound(new { message = $"Attachment with ID {id} was not found." });
             }
-
-            if (!await IsComplaintOwnerAsync(meta.ComplaintId) && !string.Equals(meta.UploadedBy, User.Identity?.Name, StringComparison.OrdinalIgnoreCase))
+            complaintId = meta.ComplaintId;
+        }
+        else if (_dbContext != null)
+        {
+            complaintId = await _dbContext.Attachments
+                .Where(attachment => attachment.Id == id)
+                .Select(attachment => (int?)attachment.ComplaintId)
+                .FirstOrDefaultAsync();
+            if (!complaintId.HasValue)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to delete this attachment." });
+                return NotFound(new { message = $"Attachment with ID {id} was not found." });
             }
         }
 
-        var complaintId = await _dbContext.Attachments
-            .Where(attachment => attachment.Id == id)
-            .Select(attachment => (int?)attachment.ComplaintId)
-            .FirstOrDefaultAsync();
-        if (!complaintId.HasValue)
+        if (complaintId.HasValue)
         {
-            return NotFound(new { message = $"Attachment with ID {id} was not found." });
+            var accessError = await EnsureComplaintAccessAsync(complaintId.Value);
+            if (accessError != null) return accessError;
         }
-
-        var accessError = await EnsureComplaintAccessAsync(complaintId.Value);
-        if (accessError != null) return accessError;
 
         var deleted = await _attachmentService.DeleteAsync(id);
         if (!deleted)
@@ -187,73 +170,63 @@ public class AttachmentsController : ControllerBase
         return NoContent();
     }
 
-    // Check whether current user owns the specified complaint
-    private async Task<bool> IsComplaintOwnerAsync(int complaintId)
+    private async Task<IActionResult?> EnsureComplaintAccessAsync(int complaintId)
     {
-        if (_complaintRepository == null) return true;
+        if (User.IsInRole("Admin")) return null;
 
-        var complaint = await _complaintRepository.GetByIdAsync(complaintId);
-        if (complaint == null) return false;
-
-        var studentIdClaim = User.FindFirstValue("student_id")
-            ?? User.FindFirstValue("StudentId");
-        if (!string.IsNullOrEmpty(studentIdClaim) && int.TryParse(studentIdClaim, out var claimStudentId))
+        int? studentId = null;
+        if (_complaintRepository != null)
         {
-            if (claimStudentId == complaint.StudentId) return true;
+            var comp = await _complaintRepository.GetByIdAsync(complaintId);
+            if (comp == null)
+            {
+                return NotFound(new { message = $"Complaint with ID {complaintId} was not found." });
+            }
+            studentId = comp.StudentId;
+        }
+        else if (_dbContext != null)
+        {
+            studentId = await _dbContext.Complaints
+                .Where(complaint => complaint.Id == complaintId)
+                .Select(complaint => (int?)complaint.StudentId)
+                .FirstOrDefaultAsync();
+            if (!studentId.HasValue)
+            {
+                return NotFound(new { message = $"Complaint with ID {complaintId} was not found." });
+            }
+        }
+
+        if (!studentId.HasValue)
+        {
+            return null;
+        }
+
+        var currentStudentId = User.FindFirstValue("student_id")
+            ?? User.FindFirstValue("StudentId");
+        if (int.TryParse(currentStudentId, out var parsedStudentId) && parsedStudentId == studentId.Value)
+        {
+            return null;
         }
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-        if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var parsedUserId))
+        if (int.TryParse(userId, out var parsedUserId) && parsedUserId == studentId.Value)
         {
-            if (parsedUserId == complaint.StudentId) return true;
+            return null;
         }
 
         var userEmail = User.FindFirstValue(ClaimTypes.Email)
             ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
             ?? User.FindFirst("email")?.Value;
-        if (!string.IsNullOrEmpty(userEmail) && complaint.Student != null)
+        if (!string.IsNullOrEmpty(userEmail) && _dbContext != null)
         {
-            if (string.Equals(userEmail, complaint.Student.Email, StringComparison.OrdinalIgnoreCase)) return true;
-        }
-
-        var userName = User.Identity?.Name
-            ?? User.FindFirstValue(ClaimTypes.Name)
-            ?? User.FindFirst("name")?.Value;
-        if (!string.IsNullOrEmpty(userName) && complaint.Student != null)
-        {
-            if (string.Equals(userName, complaint.Student.FullName, StringComparison.OrdinalIgnoreCase)) return true;
-        }
-
-        if (_context != null)
-        {
-            var student = await _context.Students.AsNoTracking().FirstOrDefaultAsync(s => s.Id == complaint.StudentId);
-            if (student != null)
+            var student = await _dbContext.Students.AsNoTracking().FirstOrDefaultAsync(s => s.Id == studentId.Value);
+            if (student != null && string.Equals(student.Email, userEmail, StringComparison.OrdinalIgnoreCase))
             {
-                if (!string.IsNullOrEmpty(userEmail) && string.Equals(student.Email, userEmail, StringComparison.OrdinalIgnoreCase))
-                    return true;
-                if (!string.IsNullOrEmpty(userName) && (string.Equals(student.FullName, userName, StringComparison.OrdinalIgnoreCase) || string.Equals(student.IndexNumber, userName, StringComparison.OrdinalIgnoreCase)))
-                    return true;
+                return null;
             }
         }
 
-        return false;
-    private async Task<IActionResult?> EnsureComplaintAccessAsync(int complaintId)
-    {
-        var studentId = await _dbContext.Complaints
-            .Where(complaint => complaint.Id == complaintId)
-            .Select(complaint => (int?)complaint.StudentId)
-            .FirstOrDefaultAsync();
-        if (!studentId.HasValue)
-        {
-            return NotFound(new { message = $"Complaint with ID {complaintId} was not found." });
-        }
-
-        if (User.IsInRole("Admin")) return null;
-
-        var currentStudentId = User.FindFirstValue("student_id");
-        return int.TryParse(currentStudentId, out var parsedStudentId) && parsedStudentId == studentId.Value
-            ? null
-            : Forbid();
+        return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to access attachments for this complaint." });
     }
 }

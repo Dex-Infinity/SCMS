@@ -34,8 +34,8 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 - [x] Build the student complaint submission form (with file attachment upload)
 - [x] Build the student complaint tracking page (list + live status)
 - [x] Build the management reporting dashboard (charts from the analytics API)
-- [ ] Wire all pages to backend API endpoints
-- [ ] Build the "All Complaints" list page (`/complaints`) and details page (`/complaints/{id}`)
+- [x] Wire all pages to backend API endpoints
+- [x] Build the "All Complaints" list page (`/complaints`) and details page (`/complaints/{id}`)
 
 ## UI/UX Designer
 
@@ -61,16 +61,12 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 **Seglah Emmanuel**
 - [x] Design the Attachments, StatusHistory, and Notifications tables
 - [x] Add indexing for common queries (complaints by student, status, department)
-- [ ] Add the ER diagram to `docs/er-diagram.png`
-
-**Collins Edumadze Egyir**
-- [x] Define relationships between Complaints, Students, and Departments
-- [ ] Manage migrations as the schema evolves
 - [x] Add the ER diagram to `docs/er-diagram.png`
 
 **Collins Edumadze Egyir**
 - [x] Define relationships between Complaints, Students, and Departments
 - [x] Manage migrations as the schema evolves
+- [x] Add the ER diagram to `docs/er-diagram.png`
 - [x] Optimize queries needed for the reporting/analytics feature
 
 ## DevOps Engineer
