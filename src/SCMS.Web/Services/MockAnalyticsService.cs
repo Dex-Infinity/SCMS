@@ -7,75 +7,49 @@ namespace SCMS.Web.Services;
 /// <summary>Sample data from the design. Replace with an API-backed implementation.</summary>
 public sealed class MockAnalyticsService : IAnalyticsService
 {
-    public Task<ManagementAnalyticsData> GetAsync(ReportRange range, CancellationToken cancellationToken = default)
+    public Task<ManagementAnalyticsData> GetAsync(CancellationToken cancellationToken = default)
     {
-        // Scale the counts per range just so changing the range visibly does something.
-        var scale = range switch
-        {
-            ReportRange.CurrentSemester => 3,
-            ReportRange.YearToDate => 8,
-            _ => 1
-        };
-
         var data = new ManagementAnalyticsData(
-            ComplaintsByCategory:
-            [
-                new("Academic", 145 * scale),
-                new("Facilities", 98 * scale),
-                new("Housing", 64 * scale),
-                new("Financial", 42 * scale),
-                new("Other", 21 * scale)
-            ],
-            ResolutionRate: 87,
-            ResolutionRateChange: 2.4,
-            ResolutionTrend:
-            [
-                new("Jan", 74),
-                new("Feb", 73),
-                new("Mar", 83),
-                new("Apr", 87)
-            ],
-            Departments:
-            [
-                new("Student Life", 2.4, DepartmentRating.Excellent),
-                new("IT Services", 3.1, DepartmentRating.Excellent),
-                new("Academic Advising", 4.5, DepartmentRating.Average),
-                new("Campus Housing", 6.2, DepartmentRating.NeedsAttention)
-            ]);
+            Total: 370,
+            Pending: 26,
+            UnderReview: 47,
+            Assigned: 58,
+            Resolved: 222,
+            Rejected: 17,
+            ResolutionRate: 60,
+            AverageResolutionHours: 58.4,
+            MedianResolutionHours: 41.2,
+            ByStatus: [new("Pending", 26), new("Under review", 47), new("Assigned", 58), new("Resolved", 222), new("Rejected", 17)],
+            ByDepartment: [new("Department 1", 144), new("Department 2", 121), new("Department 3", 105)]);
 
         return Task.FromResult(data);
     }
 
-    public async Task<ExportedReport> ExportAsync(ReportRange range, ReportFormat format, CancellationToken cancellationToken = default)
+    public async Task<ExportedReport> ExportAsync(CancellationToken cancellationToken = default)
     {
-        if (format == ReportFormat.Pdf)
-        {
-            throw new NotSupportedException("PDF export needs the reporting API, which isn't available yet.");
-        }
-
-        var data = await GetAsync(range, cancellationToken);
+        var data = await GetAsync(cancellationToken);
 
         var csv = new StringBuilder();
-        csv.AppendLine($"SCMS management report,{Escape(ReportRanges.LabelFor(range))}");
+        csv.AppendLine("SCMS all-time management report");
         csv.AppendLine();
-        csv.AppendLine("Category,Complaints");
-        foreach (var category in data.ComplaintsByCategory)
+        csv.AppendLine("Status,Complaints");
+        foreach (var status in data.ByStatus)
         {
-            csv.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{Escape(category.Label)},{category.Value:0}"));
+            csv.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{Escape(status.Label)},{status.Value:0}"));
         }
 
         csv.AppendLine();
-        csv.AppendLine("Department,Average resolution (days),Rating");
-        foreach (var department in data.Departments)
+        csv.AppendLine("Department,Complaints");
+        foreach (var department in data.ByDepartment)
         {
-            csv.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{Escape(department.Name)},{department.AverageDays:0.0},{department.Rating}"));
+            csv.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{Escape(department.Label)},{department.Value:0}"));
         }
 
         // UTF-8 with a byte-order mark so Excel opens it correctly.
         var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
         var bytes = encoding.GetPreamble().Concat(encoding.GetBytes(csv.ToString())).ToArray();
 
-        var fileName = $"scms-report-{range.ToString().ToLowerInvariant()}-{DateTime.Today:yyyyMMdd}.csv";
+        var fileName = $"scms-report-{DateTime.Today:yyyyMMdd}.csv";
         return new ExportedReport(fileName, "text/csv", bytes);
     }
 

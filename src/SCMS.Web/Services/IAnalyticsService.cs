@@ -9,7 +9,7 @@ namespace SCMS.Web.Services;
 /// </summary>
 public interface IAnalyticsService
 {
-    Task<ManagementAnalyticsData> GetAsync(ReportRange range, CancellationToken cancellationToken = default);
+    Task<ManagementAnalyticsData> GetAsync(CancellationToken cancellationToken = default);
 
-    Task<ExportedReport> ExportAsync(ReportRange range, ReportFormat format, CancellationToken cancellationToken = default);
+    Task<ExportedReport> ExportAsync(CancellationToken cancellationToken = default);
 }

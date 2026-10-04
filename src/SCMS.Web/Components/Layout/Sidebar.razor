@@ -30,10 +30,12 @@
 
     <div class="mt-auto flex flex-col gap-sm">
 
-        <a href="@AppRoutes.Logout" class="nav-link">
-            <Icon Name="logout" />
-            <span>Logout</span>
-        </a>
+        <form action="/auth/logout" method="post">
+            <button type="submit" class="nav-link w-full">
+                <Icon Name="logout" />
+                <span>Logout</span>
+            </button>
+        </form>
     </div>
 </nav>
 

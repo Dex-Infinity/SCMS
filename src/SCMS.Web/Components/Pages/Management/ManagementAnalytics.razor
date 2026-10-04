@@ -1,5 +1,5 @@
 @page "/management/analytics"
-@using System.Globalization
+@attribute [Authorize(Roles = "Admin")]
 @inject IAnalyticsService Analytics
 @inject IJSRuntime JS
 @inject ILogger<ManagementAnalytics> Logger
@@ -12,22 +12,9 @@
     <div class="mb-xl flex flex-col justify-between gap-md sm:flex-row sm:items-end">
         <div>
             <h1 tabindex="-1" class="mb-2 text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">Management Analytics</h1>
-            <p class="text-body-md text-on-surface-variant">Overview of institutional complaint resolution and department performance.</p>
+            <p class="text-body-md text-on-surface-variant">All-time complaint volumes and resolution performance.</p>
         </div>
-
-        <div class="relative sm:shrink-0">
-            <Icon Name="calendar_today" Class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[18px] text-on-surface" />
-            <select aria-label="Report period"
-                    class="w-full appearance-none rounded-lg border border-outline-variant bg-surface-container py-sm pr-9 pl-9 sm:w-auto text-label-sm text-on-surface transition-colors hover:bg-surface-container-high focus-visible:outline-2 focus-visible:outline-primary-container"
-                    @bind="_range"
-                    @bind:after="LoadAsync">
-                @foreach (var range in Enum.GetValues<ReportRange>())
-                {
-                    <option value="@range">@ReportRanges.LabelFor(range)</option>
-                }
-            </select>
-            <Icon Name="expand_more" Class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[18px] text-on-surface-variant" />
-        </div>
+        <span class="rounded-lg bg-surface-container px-md py-sm text-label-sm text-on-surface-variant">All time</span>
     </div>
 
     @if (_loadFailed)
@@ -64,13 +51,10 @@
             <div class="mb-xl grid grid-cols-1 gap-lg md:grid-cols-12">
                 <section class="flex flex-col rounded-xl border border-outline-variant bg-surface-container-lowest p-lg shadow-sm md:col-span-8">
                     <div class="mb-md flex items-center justify-between">
-                        <h2 class="text-title-md text-on-surface">Complaints by Category</h2>
-                        <button type="button" class="rounded-full text-secondary transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-primary-container" aria-label="Chart options">
-                            <Icon Name="more_vert" />
-                        </button>
+                        <h2 class="text-title-md text-on-surface">Complaints by Status</h2>
                     </div>
                     <div class="mt-auto pt-md">
-                        <BarChart Items="_data.ComplaintsByCategory" Title="Complaints by category" />
+                        <BarChart Items="_data.ByStatus" Title="Complaints by status" />
                     </div>
                 </section>
 
@@ -78,15 +62,19 @@
                     <div class="mb-md">
                         <h2 class="text-title-md text-on-surface">Resolution Rate</h2>
                         <div class="mt-2 flex items-baseline gap-2">
-                            <span class="text-display-lg text-primary">@FormatRate(_data.ResolutionRate)%</span>
-                            <span class="flex items-center text-label-sm text-tertiary-container">
-                                <Icon Name="@(_data.ResolutionRateChange >= 0 ? "trending_up" : "trending_down")" Class="text-[16px]" />
-                                @TrendText
-                            </span>
+                            <span class="text-display-lg text-primary">@_data.ResolutionRate.ToString("0")%</span>
                         </div>
+                        <p class="mt-1 text-caption text-on-surface-variant">@_data.Resolved of @_data.Total complaints resolved</p>
                     </div>
-                    <div class="mt-auto min-h-[190px] flex-1">
-                        <AreaChart Points="_data.ResolutionTrend" Title="Resolution rate by month" />
+                    <div class="mt-auto grid grid-cols-2 gap-md border-t border-surface-variant pt-md">
+                        <div>
+                            <p class="text-caption text-on-surface-variant">Average time</p>
+                            <p class="text-title-md text-on-surface">@_data.AverageResolutionHours.ToString("0.0") hrs</p>
+                        </div>
+                        <div>
+                            <p class="text-caption text-on-surface-variant">Median time</p>
+                            <p class="text-title-md text-on-surface">@_data.MedianResolutionHours.ToString("0.0") hrs</p>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -96,7 +84,7 @@
                 <section class="flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm md:col-span-8">
                     <div class="flex items-center justify-between border-b border-outline-variant bg-surface-bright p-lg">
                         <h2 class="text-title-md text-on-surface">Department Efficiency</h2>
-                        <span class="text-caption text-on-surface-variant">Avg. Resolution Time</span>
+                        <span class="text-caption text-on-surface-variant">Complaint volume</span>
                     </div>
                     <div class="flex-1 overflow-auto">
                         <table class="w-full border-collapse text-left">
@@ -105,21 +93,17 @@
                                 <tr class="bg-surface-container-low text-label-sm text-on-surface-variant">
                                     <th scope="col" class="w-12 p-4 text-center font-medium">#</th>
                                     <th scope="col" class="p-4 font-medium">Department</th>
-                                    <th scope="col" class="p-4 font-medium">Avg Time</th>
-                                    <th scope="col" class="p-4 font-medium">Status</th>
+                                    <th scope="col" class="p-4 font-medium">Complaints</th>
                                 </tr>
                             </thead>
                             <tbody class="text-body-md">
-                                @for (var i = 0; i < _data.Departments.Count; i++)
+                                @for (var i = 0; i < _data.ByDepartment.Count; i++)
                                 {
-                                    var department = _data.Departments[i];
-                                    <tr @key="department.Name" class="border-b border-surface-variant transition-colors last:border-b-0 hover:bg-surface">
+                                    var department = _data.ByDepartment[i];
+                                    <tr @key="department.Label" class="border-b border-surface-variant transition-colors last:border-b-0 hover:bg-surface">
                                         <td class="@(i == 0 ? "p-4 text-center font-semibold text-primary" : "p-4 text-center text-on-surface-variant")">@(i + 1)</td>
-                                        <td class="p-4">@department.Name</td>
-                                        <td class="p-4 whitespace-nowrap">@FormatDays(department.AverageDays)</td>
-                                        <td class="p-4">
-                                            <span class="inline-flex items-center gap-1 rounded px-2 py-1 text-caption whitespace-nowrap @RatingClasses(department.Rating)">@RatingLabel(department.Rating)</span>
-                                        </td>
+                                        <td class="p-4">@department.Label</td>
+                                        <td class="p-4 whitespace-nowrap">@department.Value</td>
                                     </tr>
                                 }
                             </tbody>
@@ -133,43 +117,8 @@
                     </div>
 
                     <div class="relative z-10">
-                        <h2 class="mb-2 text-title-md">Export Report</h2>
-                        <p class="mb-lg text-body-md text-primary-fixed-dim">Generate a detailed summary of all institutional complaints and resolutions.</p>
-
-                        <div class="flex flex-col gap-md">
-                            <div>
-                                <label for="export-range" class="mb-1 block text-label-sm text-primary-fixed">Date Range</label>
-                                <div class="relative">
-                                    <select id="export-range"
-                                            class="w-full appearance-none rounded-lg border-none bg-surface-tint px-3 py-2 pr-10 text-body-md text-on-primary focus:ring-2 focus:ring-primary-fixed focus:outline-none [&>option]:bg-surface-container-lowest [&>option]:text-on-surface"
-                                            @bind="_exportRange">
-                                        @foreach (var range in Enum.GetValues<ReportRange>())
-                                        {
-                                            <option value="@range">@ReportRanges.LabelFor(range)</option>
-                                        }
-                                    </select>
-                                    <Icon Name="expand_more" Class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-primary-fixed-dim" />
-                                </div>
-                            </div>
-
-                            <fieldset>
-                                <legend class="mb-1 block text-label-sm text-primary-fixed">Format</legend>
-                                <div class="flex gap-sm">
-                                    <label class="flex-1 cursor-pointer">
-                                        <input type="radio" name="export-format" class="peer sr-only"
-                                               checked="@(_format == ReportFormat.Pdf)"
-                                               @onchange="() => _format = ReportFormat.Pdf" />
-                                        <div class="rounded-lg border border-primary-fixed-dim py-2 text-center text-label-sm transition-colors peer-checked:bg-primary-fixed peer-checked:text-on-primary-fixed peer-focus-visible:ring-2 peer-focus-visible:ring-primary-fixed peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-primary">PDF</div>
-                                    </label>
-                                    <label class="flex-1 cursor-pointer">
-                                        <input type="radio" name="export-format" class="peer sr-only"
-                                               checked="@(_format == ReportFormat.Csv)"
-                                               @onchange="() => _format = ReportFormat.Csv" />
-                                        <div class="rounded-lg border border-primary-fixed-dim py-2 text-center text-label-sm transition-colors peer-checked:bg-primary-fixed peer-checked:text-on-primary-fixed peer-focus-visible:ring-2 peer-focus-visible:ring-primary-fixed peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-primary">CSV</div>
-                                    </label>
-                                </div>
-                            </fieldset>
-                        </div>
+                        <h2 class="mb-2 text-title-md">Export all-time report</h2>
+                        <p class="mb-lg text-body-md text-primary-fixed-dim">Download the current API summary as a CSV file.</p>
                     </div>
 
                     <div class="relative z-10 mt-xl">
@@ -194,7 +143,7 @@
                             else
                             {
                                 <Icon Name="download" />
-                                <span>Generate Report</span>
+                                <span>Download CSV</span>
                             }
                         </button>
                     </div>
@@ -206,21 +155,12 @@
 
 @code {
     private ManagementAnalyticsData? _data;
-    private ReportRange _range = ReportRange.Last30Days;
     private bool _loading;
     private bool _loadFailed;
 
-    private ReportRange _exportRange = ReportRange.Last30Days;
-    private ReportFormat _format = ReportFormat.Pdf;
     private bool _exporting;
     private bool _exportDone;
     private string? _exportError;
-
-    private string TrendText =>
-        _data is null
-            ? string.Empty
-            : (_data.ResolutionRateChange >= 0 ? "+" : string.Empty)
-              + _data.ResolutionRateChange.ToString("0.0", CultureInfo.InvariantCulture) + "%";
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -231,7 +171,7 @@
 
         try
         {
-            _data = await Analytics.GetAsync(_range);
+            _data = await Analytics.GetAsync();
         }
         catch (Exception ex)
         {
@@ -258,7 +198,7 @@
 
         try
         {
-            var report = await Analytics.ExportAsync(_exportRange, _format);
+            var report = await Analytics.ExportAsync();
 
             await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/download.js");
             await module.InvokeVoidAsync("downloadFile", report.FileName, report.ContentType, report.Content);
@@ -280,24 +220,4 @@
         }
     }
 
-    private static string FormatRate(double rate) => rate.ToString("0", CultureInfo.InvariantCulture);
-
-    private static string FormatDays(double days) => days.ToString("0.0", CultureInfo.InvariantCulture) + " Days";
-
-    private static string RatingLabel(DepartmentRating rating) => rating switch
-    {
-        DepartmentRating.Excellent => "Excellent",
-        DepartmentRating.Average => "Average",
-        DepartmentRating.NeedsAttention => "Needs Attention",
-        _ => rating.ToString()
-    };
-
-    // Keep these class names literal so Tailwind can find them.
-    private static string RatingClasses(DepartmentRating rating) => rating switch
-    {
-        DepartmentRating.Excellent => "bg-secondary-fixed text-on-secondary-fixed",
-        DepartmentRating.Average => "bg-surface-container-high text-on-surface",
-        DepartmentRating.NeedsAttention => "bg-error-container text-on-error-container",
-        _ => "bg-surface-variant text-on-surface-variant"
-    };
 }

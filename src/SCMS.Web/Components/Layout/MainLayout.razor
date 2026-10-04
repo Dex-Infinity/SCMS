@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
 @inject ICurrentUserService Users
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
 <div class="min-h-screen bg-surface text-on-surface">
     <a href="#main-content"
@@ -38,7 +40,23 @@
 
     private bool _sidebarOpen;
 
-    protected override async Task OnInitializedAsync() => _user = await Users.GetAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authenticationState.User.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        try
+        {
+            _user = await Users.GetAsync();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Navigation.NavigateTo("/login?error=session", forceLoad: true);
+        }
+    }
 
     private void OpenSidebar() => _sidebarOpen = true;
     private void CloseSidebar() => _sidebarOpen = false;
