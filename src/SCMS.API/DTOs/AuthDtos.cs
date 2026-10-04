@@ -20,6 +20,13 @@ public class RegisterDto
     [Required]
     [StringLength(100, MinimumLength = 6)]
     public string Password { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(50, MinimumLength = 3)]
+    public string IndexNumber { get; set; } = string.Empty;
+
+    [Range(1, int.MaxValue)]
+    public int DepartmentId { get; set; }
 }
 
 // Data transfer object for user login
@@ -42,4 +49,5 @@ public class AuthResponseDto
     public string UserName { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public List<string> Roles { get; set; } = new();
+    public int? StudentId { get; set; }
 }

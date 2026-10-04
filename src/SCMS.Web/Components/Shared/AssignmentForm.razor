@@ -2,8 +2,14 @@
     <DataAnnotationsValidator />
     <ValidationSummary class="text-caption text-error sm:col-span-4" />
     <div class="flex flex-col gap-2">
-        <label class="field-label" for="@($"department-{ComplaintId}")">Department ID</label>
-        <InputNumber id="@($"department-{ComplaintId}")" class="field-input" @bind-Value="Model.DepartmentId" min="1" required />
+        <label class="field-label" for="@($"department-{ComplaintId}")">Department</label>
+        <InputSelect id="@($"department-{ComplaintId}")" class="field-input" @bind-Value="Model.DepartmentId">
+            <option value="0" disabled>Select a department</option>
+            @foreach (var department in Departments)
+            {
+                <option value="@department.Id">@department.Name</option>
+            }
+        </InputSelect>
         <ValidationMessage For="() => Model.DepartmentId" />
     </div>
     <div class="flex flex-col gap-2">
@@ -19,6 +25,7 @@
 
 @code {
     [Parameter, EditorRequired] public int ComplaintId { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<DepartmentOption> Departments { get; set; } = [];
     [Parameter, EditorRequired] public ComplaintAssignment Model { get; set; } = new();
     [Parameter] public bool Busy { get; set; }
     [Parameter, EditorRequired] public EventCallback<ComplaintAssignment> OnSave { get; set; }

@@ -1,7 +1,10 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SCMS.API.DTOs;
 using SCMS.API.Services;
+using SCMS.Infrastructure.Data;
 
 namespace SCMS.API.Controllers;
 
@@ -13,11 +16,13 @@ namespace SCMS.API.Controllers;
 public class AttachmentsController : ControllerBase
 {
     private readonly IAttachmentService _attachmentService;
+    private readonly ApplicationDbContext _dbContext;
 
     // Inject attachment service
-    public AttachmentsController(IAttachmentService attachmentService)
+    public AttachmentsController(IAttachmentService attachmentService, ApplicationDbContext dbContext)
     {
         _attachmentService = attachmentService;
+        _dbContext = dbContext;
     }
 
     // POST api/attachments/complaints/{complaintId} - Upload a supporting document
@@ -32,6 +37,9 @@ public class AttachmentsController : ControllerBase
         {
             return BadRequest(ModelState);
         }
+
+        var accessError = await EnsureComplaintAccessAsync(complaintId);
+        if (accessError != null) return accessError;
 
         var uploadedBy = User.Identity?.Name ?? "unknown";
 
@@ -56,6 +64,9 @@ public class AttachmentsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<AttachmentResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByComplaint(int complaintId)
     {
+        var accessError = await EnsureComplaintAccessAsync(complaintId);
+        if (accessError != null) return accessError;
+
         var result = await _attachmentService.GetComplaintAttachmentsAsync(complaintId);
         return Ok(result);
     }
@@ -66,6 +77,18 @@ public class AttachmentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Download(int id)
     {
+        var complaintId = await _dbContext.Attachments
+            .Where(attachment => attachment.Id == id)
+            .Select(attachment => (int?)attachment.ComplaintId)
+            .FirstOrDefaultAsync();
+        if (!complaintId.HasValue)
+        {
+            return NotFound(new { message = $"Attachment with ID {id} was not found." });
+        }
+
+        var accessError = await EnsureComplaintAccessAsync(complaintId.Value);
+        if (accessError != null) return accessError;
+
         var result = await _attachmentService.DownloadAsync(id);
         if (result == null)
         {
@@ -81,6 +104,18 @@ public class AttachmentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
+        var complaintId = await _dbContext.Attachments
+            .Where(attachment => attachment.Id == id)
+            .Select(attachment => (int?)attachment.ComplaintId)
+            .FirstOrDefaultAsync();
+        if (!complaintId.HasValue)
+        {
+            return NotFound(new { message = $"Attachment with ID {id} was not found." });
+        }
+
+        var accessError = await EnsureComplaintAccessAsync(complaintId.Value);
+        if (accessError != null) return accessError;
+
         var deleted = await _attachmentService.DeleteAsync(id);
         if (!deleted)
         {
@@ -88,5 +123,24 @@ public class AttachmentsController : ControllerBase
         }
 
         return NoContent();
+    }
+
+    private async Task<IActionResult?> EnsureComplaintAccessAsync(int complaintId)
+    {
+        var studentId = await _dbContext.Complaints
+            .Where(complaint => complaint.Id == complaintId)
+            .Select(complaint => (int?)complaint.StudentId)
+            .FirstOrDefaultAsync();
+        if (!studentId.HasValue)
+        {
+            return NotFound(new { message = $"Complaint with ID {complaintId} was not found." });
+        }
+
+        if (User.IsInRole("Admin")) return null;
+
+        var currentStudentId = User.FindFirstValue("student_id");
+        return int.TryParse(currentStudentId, out var parsedStudentId) && parsedStudentId == studentId.Value
+            ? null
+            : Forbid();
     }
 }

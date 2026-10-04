@@ -22,11 +22,31 @@ public sealed class ApiComplaint
 public sealed class ApiNotification
 {
     public int Id { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public bool IsRead { get; set; }
     public int? ComplaintId { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+public sealed class ApiAttachment
+{
+    public int Id { get; set; }
+    public int ComplaintId { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string UploadedBy { get; set; } = string.Empty;
+    public DateTime UploadedAt { get; set; }
+}
+
+public sealed class ApiNotificationCreate
+{
+    public string UserId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public int? ComplaintId { get; set; }
 }
 
 public sealed class ProfileFormModel
@@ -54,16 +74,6 @@ public sealed class SettingsFormModel
 
     [Required, StringLength(10, MinimumLength = 2)]
     public string Language { get; set; } = "en";
-}
-
-public sealed class LoginResponse
-{
-    public string Token { get; set; } = string.Empty;
-    public DateTime ExpiresAt { get; set; }
-    public string Email { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
-    public string FullName { get; set; } = string.Empty;
-    public List<string> Roles { get; set; } = [];
 }
 
 public sealed class ApiProfile
@@ -110,4 +120,11 @@ public sealed class ProfileUpdate
     public string FullName { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+}
+
+public sealed class DepartmentOption
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 }

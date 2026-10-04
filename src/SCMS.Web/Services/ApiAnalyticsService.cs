@@ -9,8 +9,15 @@ public sealed class ApiAnalyticsService(ApiClient apiClient) : IAnalyticsService
 {
     public async Task<ManagementAnalyticsData> GetAsync(CancellationToken cancellationToken = default)
     {
-        var summary = await GetSummaryAsync(cancellationToken);
-        var resolutionRate = summary.Total == 0 ? 0 : summary.Resolved * 100d / summary.Total;
+        var summaryTask = GetEndpointAsync<ApiReportsSummary>("summary", cancellationToken);
+        var statusTask = GetEndpointAsync<List<ApiStatusCount>>("by-status", cancellationToken);
+        var departmentTask = GetEndpointAsync<List<ApiDepartmentCount>>("by-department", cancellationToken);
+        var resolutionTask = GetEndpointAsync<ApiResolutionTime>("resolution-time", cancellationToken);
+        await Task.WhenAll(summaryTask, statusTask, departmentTask, resolutionTask);
+
+        var summary = await summaryTask;
+        var resolution = await resolutionTask;
+        var resolutionRate = summary.Total == 0 ? 0 : resolution.ResolvedCount * 100d / summary.Total;
 
         return new ManagementAnalyticsData(
             summary.Total,
@@ -20,11 +27,10 @@ public sealed class ApiAnalyticsService(ApiClient apiClient) : IAnalyticsService
             summary.Resolved,
             summary.Rejected,
             resolutionRate,
-            summary.ResolutionTime.AverageHours,
-            summary.ResolutionTime.MedianHours,
-            summary.ByStatus.Select(item => new ChartPoint(item.Status, item.Count)).ToList(),
-            summary.ByDepartment.Select(item => new ChartPoint(
-                string.IsNullOrWhiteSpace(item.DepartmentId) ? "Unassigned" : $"Department {item.DepartmentId}", item.Count)).ToList());
+            resolution.AverageHours,
+            resolution.MedianHours,
+            (await statusTask).Select(item => new ChartPoint(item.Status, item.Count)).ToList(),
+            (await departmentTask).Select(item => new ChartPoint(item.DepartmentName, item.Count)).ToList());
     }
 
     public async Task<ExportedReport> ExportAsync(CancellationToken cancellationToken = default)
@@ -58,13 +64,13 @@ public sealed class ApiAnalyticsService(ApiClient apiClient) : IAnalyticsService
         return new ExportedReport($"scms-report-{DateTime.UtcNow:yyyyMMdd}.csv", "text/csv", bytes);
     }
 
-    private async Task<ApiReportsSummary> GetSummaryAsync(CancellationToken cancellationToken)
+    private async Task<T> GetEndpointAsync<T>(string endpoint, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "api/reports/summary");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"api/reports/{endpoint}");
         using var response = await apiClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<ApiReportsSummary>(cancellationToken: cancellationToken)
-            ?? throw new InvalidOperationException("The API returned an empty reports summary.");
+        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken)
+            ?? throw new InvalidOperationException($"The API returned an empty response for reports/{endpoint}.");
     }
 
     private static string Escape(string value) =>

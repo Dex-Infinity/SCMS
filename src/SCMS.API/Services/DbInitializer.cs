@@ -6,11 +6,11 @@ namespace SCMS.API.Services;
 
 public class SeedOptions
 {
-    public bool SeedOnStartup { get; set; } = true;
-    public string AdminEmail { get; set; } = "admin@scms.com";
-    public string AdminPassword { get; set; } = "Admin@123456";
-    public string AdminUserName { get; set; } = "admin";
-    public string AdminFullName { get; set; } = "System Administrator";
+    public bool SeedOnStartup { get; set; }
+    public string AdminEmail { get; set; } = string.Empty;
+    public string AdminPassword { get; set; } = string.Empty;
+    public string AdminUserName { get; set; } = string.Empty;
+    public string AdminFullName { get; set; } = string.Empty;
 }
 
 public interface IDbInitializer
@@ -39,12 +39,20 @@ public class DbInitializer : IDbInitializer
 
     public async Task InitializeAsync()
     {
+        await SeedRolesAsync();
         if (!_seedOptions.SeedOnStartup)
         {
             return;
         }
 
-        await SeedRolesAsync();
+        if (string.IsNullOrWhiteSpace(_seedOptions.AdminEmail)
+            || string.IsNullOrWhiteSpace(_seedOptions.AdminPassword)
+            || string.IsNullOrWhiteSpace(_seedOptions.AdminUserName)
+            || string.IsNullOrWhiteSpace(_seedOptions.AdminFullName))
+        {
+            throw new InvalidOperationException("Admin seed details must be configured when Seed:SeedOnStartup is enabled.");
+        }
+
         await SeedAdminUserAsync();
     }
 

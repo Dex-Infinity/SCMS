@@ -1,19 +1,21 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.Extensions.Options;
 using SCMS.Web.Models;
 
 namespace SCMS.Web.Services;
 
 public sealed class ApiMyComplaintsService(
     ApiClient apiClient,
-    AuthenticationStateProvider authenticationStateProvider,
-    IOptions<ApiSettings> settings) : IMyComplaintsService
+    AuthenticationStateProvider authenticationStateProvider) : IMyComplaintsService
 {
     public async Task<IReadOnlyList<ComplaintSummary>> GetAsync(CancellationToken cancellationToken = default)
     {
         var state = await authenticationStateProvider.GetAuthenticationStateAsync();
-        var studentId = settings.Value.RequireStudentId(state.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value);
+        if (!int.TryParse(state.User.FindFirst("student_id")?.Value, out var studentId))
+        {
+            throw new InvalidOperationException("This account is not linked to a student profile.");
+        }
+
         using var request = new HttpRequestMessage(HttpMethod.Get, $"api/complaints/student/{studentId}");
         using var response = await apiClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -22,19 +24,23 @@ public sealed class ApiMyComplaintsService(
         return complaints.Select(MapComplaint).ToList();
     }
 
-    private ComplaintSummary MapComplaint(ApiComplaintResponse complaint)
+    public async Task<ComplaintSummary?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"api/complaints/{id}");
+        using var response = await apiClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        var complaint = await response.Content.ReadFromJsonAsync<ApiComplaintResponse>(cancellationToken: cancellationToken);
+        return complaint is null ? null : MapComplaint(complaint);
+    }
+
+    private static ComplaintSummary MapComplaint(ApiComplaintResponse complaint)
     {
         var status = Enum.TryParse<ComplaintStatus>(complaint.StatusText, ignoreCase: true, out var parsedStatus)
             ? parsedStatus
             : throw new InvalidOperationException($"The API returned an unknown complaint status '{complaint.StatusText}'.");
-        var department = complaint.DepartmentName;
-        if (string.IsNullOrWhiteSpace(department) && complaint.DepartmentId is { } departmentId)
-        {
-            department = settings.Value.DepartmentIds.FirstOrDefault(pair => pair.Value == departmentId).Key;
-        }
-
         var reference = $"CMP-{complaint.CreatedAt.Year}-{complaint.Id:D3}";
-        var category = department is null ? "Unassigned" : ComplaintCategories.LabelFor(department);
+        var category = complaint.DepartmentName ?? "Unassigned";
         return new ComplaintSummary(complaint.Id, reference, complaint.Title, category, complaint.CreatedAt, status, complaint.Description);
     }
 }

@@ -1,6 +1,7 @@
 @page "/complaints/{Id:int}"
 @attribute [Authorize(Roles = "Student,Admin")]
 @inject IMyComplaintsService Complaints
+@inject ScmsApiClient Api
 @inject ILogger<ComplaintDetails> Logger
 
 <PageTitle>@(_complaint is null ? "Complaint Details" : $"{_complaint.Reference} - SCMS Portal")</PageTitle>
@@ -24,7 +25,7 @@
             <button type="button" class="btn btn-primary shrink-0" @onclick="LoadAsync">Try again</button>
         </section>
     }
-    else if (_complaints is null)
+    else if (_loading)
     {
         <div role="status" aria-label="Loading complaint details" class="h-80 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"></div>
     }
@@ -112,6 +113,42 @@
                     <h3 class="text-label-sm text-on-surface-variant">Description</h3>
                     <p class="mt-2 whitespace-pre-wrap break-words text-body-md text-on-surface">@_complaint.Description</p>
                 </div>
+                <div class="border-t border-surface-variant pt-lg">
+                    <h3 class="text-title-md text-on-surface">Supporting documents</h3>
+                    @if (_attachmentError is not null)
+                    {
+                        <p class="mt-sm text-body-sm text-error" role="alert">@_attachmentError</p>
+                    }
+                    else if (_attachments is null)
+                    {
+                        <p class="mt-sm text-body-sm text-on-surface-variant" role="status">Loading documents...</p>
+                    }
+                    else if (_attachments.Count == 0)
+                    {
+                        <p class="mt-sm text-body-sm text-on-surface-variant">No documents were attached.</p>
+                    }
+                    else
+                    {
+                        <ul class="mt-sm divide-y divide-surface-variant border-y border-surface-variant">
+                            @foreach (var attachment in _attachments)
+                            {
+                                <li @key="attachment.Id" class="flex flex-wrap items-center gap-md py-md">
+                                    <Icon Name="attach_file" Class="text-primary" />
+                                    <div class="min-w-0 flex-1">
+                                        <p class="break-all text-label-sm text-on-surface">@attachment.FileName</p>
+                                        <p class="text-caption text-on-surface-variant">@FileSize.Format(attachment.FileSize) · @attachment.UploadedAt.ToLocalTime().ToString("MMM d, yyyy")</p>
+                                    </div>
+                                    <a class="icon-btn" href="/attachments/@attachment.Id/download" title="Download @attachment.FileName" aria-label="Download @attachment.FileName">
+                                        <Icon Name="download" />
+                                    </a>
+                                    <button type="button" class="icon-btn text-error" title="Delete @attachment.FileName" aria-label="Delete @attachment.FileName" disabled="@_deletingAttachment" @onclick="() => DeleteAttachmentAsync(attachment)">
+                                        <Icon Name="delete" />
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
             </section>
 
             <aside class="flex flex-col gap-md rounded-xl border border-surface-variant bg-surface-container-low p-lg" aria-labelledby="next-step-heading">
@@ -136,8 +173,11 @@
     public int Id { get; set; }
 
     private static readonly string[] _steps = ["Received", "Under review", "Assigned", "Complete"];
-    private IReadOnlyList<ComplaintSummary>? _complaints;
     private ComplaintSummary? _complaint;
+    private IReadOnlyList<ApiAttachment>? _attachments;
+    private bool _loading = true;
+    private bool _deletingAttachment;
+    private string? _attachmentError;
     private bool _loadFailed;
 
     private int CurrentStep => _complaint?.Status switch
@@ -190,18 +230,55 @@
     private async Task LoadAsync()
     {
         _loadFailed = false;
-        _complaints = null;
+        _loading = true;
         _complaint = null;
+        _attachments = null;
+        _attachmentError = null;
 
         try
         {
-            _complaints = await Complaints.GetAsync();
-            _complaint = _complaints.FirstOrDefault(complaint => complaint.Id == Id);
+            _complaint = await Complaints.GetByIdAsync(Id);
+            if (_complaint is not null)
+            {
+                try
+                {
+                    _attachments = await Api.GetAttachmentsAsync(Id);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Failed to load attachments for complaint {ComplaintId}", Id);
+                    _attachmentError = "Documents could not be loaded.";
+                }
+            }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to load complaint {ComplaintId}", Id);
             _loadFailed = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task DeleteAttachmentAsync(ApiAttachment attachment)
+    {
+        _deletingAttachment = true;
+        _attachmentError = null;
+        try
+        {
+            await Api.DeleteAttachmentAsync(attachment.Id);
+            _attachments = _attachments?.Where(item => item.Id != attachment.Id).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete attachment {AttachmentId}", attachment.Id);
+            _attachmentError = "The document could not be deleted. Try again.";
+        }
+        finally
+        {
+            _deletingAttachment = false;
         }
     }
 }

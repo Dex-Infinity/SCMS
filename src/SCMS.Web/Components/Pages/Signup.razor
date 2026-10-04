@@ -1,18 +1,96 @@
 @page "/signup"
 @layout Layout.LoginLayout
+@inject IDepartmentCatalogService DepartmentCatalog
+@inject ILogger<Signup> Logger
 
-<PageTitle>Registration unavailable - SCMS Portal</PageTitle>
+<PageTitle>Create account - SCMS Portal</PageTitle>
 
 <main class="flex min-h-screen items-center justify-center bg-surface px-md py-xl">
-    <section class="w-full max-w-[30rem] rounded-xl border border-surface-variant bg-surface-container-lowest p-xl shadow-sm" role="status">
+    <section class="w-full max-w-[32rem] rounded-xl border border-surface-variant bg-surface-container-lowest p-xl shadow-sm">
         <a href="/login" class="mb-xl inline-flex items-center gap-3 text-title-md text-primary">
             <img src="/images/crest.svg" alt="" class="size-10" />
             SCMS Portal
         </a>
-        <h1 tabindex="-1" class="text-headline-lg-mobile text-on-surface focus:outline-none">Registration unavailable</h1>
-        <p class="mt-2 text-body-md text-on-surface-variant">New account registration is temporarily unavailable. Sign in with an existing account.</p>
+        <h1 tabindex="-1" class="text-headline-lg-mobile text-on-surface focus:outline-none">Create a student account</h1>
+        <p class="mt-2 text-body-md text-on-surface-variant">Use your student details to register for the complaint portal.</p>
+        @if (Error)
+        {
+            <p class="mt-lg rounded-lg bg-error-container px-md py-sm text-body-md text-on-error-container" role="alert">
+                @(string.IsNullOrWhiteSpace(ErrorMessage) ? "Registration failed. Check your details and try again." : ErrorMessage)
+            </p>
+        }
+        @if (_departmentError is not null)
+        {
+            <p class="mt-lg rounded-lg bg-error-container px-md py-sm text-body-md text-on-error-container" role="alert">@_departmentError</p>
+        }
+        else if (_departments is null)
+        {
+            <p class="mt-lg text-body-md text-on-surface-variant" role="status">Loading departments...</p>
+        }
+        else
+        {
+            <form action="/auth/register" method="post" class="mt-xl flex flex-col gap-lg">
+                <div class="flex flex-col gap-2">
+                    <label class="field-label" for="full-name">Full name</label>
+                    <input class="field-input" id="full-name" name="FullName" type="text" autocomplete="name" minlength="3" maxlength="100" required />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="field-label" for="email">Student email</label>
+                    <input class="field-input" id="email" name="Email" type="email" autocomplete="email" required />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="field-label" for="index-number">Student number</label>
+                    <input class="field-input" id="index-number" name="IndexNumber" type="text" autocomplete="off" minlength="3" maxlength="50" required />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="field-label" for="department">Department</label>
+                    <select class="field-input" id="department" name="DepartmentId" required>
+                        <option value="" disabled selected>Select your department</option>
+                        @foreach (var department in _departments)
+                        {
+                            <option value="@department.Id">@department.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="field-label" for="password">Password</label>
+                    <input class="field-input" id="password" name="Password" type="password" autocomplete="new-password" minlength="6" required aria-describedby="password-hint" />
+                    <p id="password-hint" class="text-caption text-on-surface-variant">Use uppercase and lowercase letters, a number, and a symbol.</p>
+                </div>
+                <button class="btn btn-primary mt-sm w-full" type="submit">Create account</button>
+            </form>
+        }
         <p class="mt-lg text-center text-body-md text-on-surface-variant">
-            <a href="/login" class="font-semibold text-primary hover:underline">Sign in</a>
+            Already registered? <a href="/login" class="font-semibold text-primary hover:underline">Sign in</a>
         </p>
     </section>
 </main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? ErrorQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "message")]
+    public string? ErrorMessage { get; set; }
+
+    private List<DepartmentOption>? _departments;
+    private string? _departmentError;
+    private bool Error => ErrorQuery == "1";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _departments = (await DepartmentCatalog.GetAllAsync()).ToList();
+            if (_departments.Count == 0)
+            {
+                _departmentError = "No departments are available for registration.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load departments for registration");
+            _departmentError = "Departments could not be loaded. Try again later.";
+        }
+    }
+}

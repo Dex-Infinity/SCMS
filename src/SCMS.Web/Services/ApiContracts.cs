@@ -38,6 +38,7 @@ internal sealed class ApiStatusCount
 internal sealed class ApiDepartmentCount
 {
     public string? DepartmentId { get; set; }
+    public string DepartmentName { get; set; } = "Unassigned";
     public int Count { get; set; }
 }
 

@@ -16,6 +16,8 @@ Set these as **environment variables** or **CI/CD pipeline secrets** — never h
 
 | Token | Description | Example |
 |-------|-------------|---------|
+| `SCMS_API_BASE_URL` | Compose value forwarded to the web app's `ApiSettings__BaseUrl` | `http://api:8080` |
+| `ApiSettings__BaseUrl` | API base URL used by the web app when configured outside Compose | `https://api.example.edu` |
 | `SCMS_DB_CONNECTION_STRING` | SQL Server production connection string | `Server=prod-sql;Database=SCMSDb;User Id=sa;Password=...` |
 | `SCMS_JWT_KEY` | JWT signing key (min 32 chars, random) | Generate with: `openssl rand -base64 32` |
 | `SCMS_UPLOAD_PATH` | Absolute path for file uploads | `/var/scms/uploads` |
@@ -40,6 +42,8 @@ Set them in a `.env` file (never commit this):
 ```env
 SCMS_DB_CONNECTION_STRING=Server=...
 SCMS_JWT_KEY=...
+SCMS_API_BASE_URL=http://api:8080
+ApiSettings__BaseUrl=https://api.example.edu
 ```
 
 ## Local Development
@@ -51,6 +55,8 @@ cd src/SCMS.API
 dotnet user-secrets set "Jwt:Key" "your-local-dev-key"
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your-local-db"
 ```
+
+The Development API connection string defaults to the SQL Server published by `docker compose` on `localhost,1433`. The web app requires `ApiSettings:BaseUrl`; it has no localhost fallback. Docker Compose sets this to `http://api:8080` for the web container.
 
 ## .gitignore Rules
 

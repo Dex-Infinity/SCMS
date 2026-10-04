@@ -67,8 +67,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    connectionString =
-        "Server=sqlserver,1433;Database=SCMSDb;User Id=sa;Password=SCMS@SqlServer2026!;TrustServerCertificate=True;MultipleActiveResultSets=True";
+    throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection before starting the API.");
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -91,7 +90,13 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 
 // Configure JWT Bearer authentication
 var jwtSection = builder.Configuration.GetSection("Jwt");
-builder.Services.Configure<JwtSettings>(jwtSection);
+builder.Services.AddOptions<JwtSettings>()
+    .Bind(jwtSection)
+    .Validate(settings => System.Text.Encoding.UTF8.GetByteCount(settings.Key) >= 32
+        && !string.IsNullOrWhiteSpace(settings.Issuer)
+        && !string.IsNullOrWhiteSpace(settings.Audience),
+        "Configure a JWT key of at least 32 bytes, issuer, and audience.")
+    .ValidateOnStart();
 
 var jwtSettings = jwtSection.Get<JwtSettings>() ?? new JwtSettings();
 builder.Services.AddAuthentication(options =>
@@ -142,21 +147,15 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Ensure Database & Tables are created on app startup
 // Ensure Database & Tables are created on app startup and seed roles/admin
+// Apply database migrations and seed configured roles/admin before serving requests.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    try
-    {
-        var dbContext = services.GetRequiredService<ApplicationDbContext>();
-        await dbContext.Database.MigrateAsync();
+    var dbContext = services.GetRequiredService<ApplicationDbContext>();
+    await dbContext.Database.MigrateAsync();
 
-        var initializer = services.GetRequiredService<IDbInitializer>();
-        await initializer.InitializeAsync();
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogWarning("SQL Server connection failed ({Message}). Falling back to In-Memory Database for API testing.", ex.Message);
-    }
+    var initializer = services.GetRequiredService<IDbInitializer>();
+    await initializer.InitializeAsync();
 }
 
 // Enable Swagger UI for development and testing

@@ -29,14 +29,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddAuthorization();
 
-builder.Services.AddHttpClient();
-builder.Services.AddScoped(sp => new HttpClient
-{
-    BaseAddress = new Uri(builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5000/")
-});
-builder.Services.AddScoped<ScmsApiClient>();
-
-builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection(ApiSettings.SectionName));
+builder.Services.AddOptions<ApiSettings>()
+    .Bind(builder.Configuration.GetSection(ApiSettings.SectionName))
+    .Validate(settings => Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps),
+        "Configure ApiSettings:BaseUrl with the absolute URL of the SCMS API.")
+    .ValidateOnStart();
 builder.Services.AddHttpClient("SCMS.Api", (services, client) =>
 {
     var settings = services.GetRequiredService<IOptions<ApiSettings>>().Value;
@@ -48,12 +46,14 @@ builder.Services.AddHttpClient("SCMS.Api.Public", (services, client) =>
     client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
 });
 
+builder.Services.AddScoped<ScmsApiClient>();
 builder.Services.AddScoped<ApiClient>();
 builder.Services.AddScoped<IComplaintSubmissionService, ApiComplaintSubmissionService>();
 builder.Services.AddScoped<IStudentDashboardService, ApiStudentDashboardService>();
 builder.Services.AddScoped<IMyComplaintsService, ApiMyComplaintsService>();
 builder.Services.AddScoped<ICurrentUserService, ApiCurrentUserService>();
 builder.Services.AddScoped<IAnalyticsService, ApiAnalyticsService>();
+builder.Services.AddScoped<IDepartmentCatalogService, ApiDepartmentCatalogService>();
 
 var app = builder.Build();
 
@@ -69,6 +69,51 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
+
+async Task<IResult> CompleteSignInAsync(HttpContext context, ApiAuthResponse authenticated, string? returnUrl)
+{
+    var claims = new List<Claim>
+    {
+        new(ClaimTypes.Name, authenticated.FullName),
+        new(ClaimTypes.Email, authenticated.Email),
+        new("access_token", authenticated.Token),
+        new(ApiClient.TokenClaim, authenticated.Token)
+    };
+    claims.AddRange(authenticated.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+    if (authenticated.StudentId.HasValue)
+    {
+        claims.Add(new Claim("student_id", authenticated.StudentId.Value.ToString()));
+    }
+
+    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+    await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity),
+        new AuthenticationProperties { ExpiresUtc = authenticated.ExpiresAt });
+
+    var destination = Uri.IsWellFormedUriString(returnUrl, UriKind.Relative) && returnUrl!.StartsWith('/') && !returnUrl.StartsWith("//")
+        ? returnUrl
+        : authenticated.Roles.Contains("Admin", StringComparer.OrdinalIgnoreCase) ? AppRoutes.AdminDashboard : AppRoutes.Dashboard;
+    return Results.Redirect(destination);
+}
+
+async Task<IResult> DownloadAttachmentAsync(int id, HttpContext context, IHttpClientFactory clients)
+{
+    var token = context.User.FindFirstValue(ApiClient.TokenClaim);
+    if (string.IsNullOrWhiteSpace(token)) return Results.Unauthorized();
+
+    using var request = new HttpRequestMessage(HttpMethod.Get, $"api/attachments/{id}");
+    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    using var response = await clients.CreateClient("SCMS.Api").SendAsync(request, context.RequestAborted);
+    if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return Results.NotFound();
+    if (!response.IsSuccessStatusCode) return Results.StatusCode((int)response.StatusCode);
+
+    var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+        ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+        ?? $"attachment-{id}";
+    fileName = Path.GetFileName(fileName);
+    var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+    var content = await response.Content.ReadAsByteArrayAsync(context.RequestAborted);
+    return Results.File(content, contentType, fileName, enableRangeProcessing: true);
+}
 
 app.MapPost("/auth/login", async (HttpContext context, IHttpClientFactory clients) =>
 {
@@ -96,72 +141,60 @@ app.MapPost("/auth/login", async (HttpContext context, IHttpClientFactory client
         return Results.Redirect("/login?error=1");
     }
 
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.Name, authenticated.FullName),
-        new(ClaimTypes.Email, authenticated.Email),
-        new("access_token", authenticated.Token),
-        new(ApiClient.TokenClaim, authenticated.Token)
-    };
-    claims.AddRange(authenticated.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
-
-    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-    var principal = new ClaimsPrincipal(identity);
-    await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
-        new AuthenticationProperties { ExpiresUtc = authenticated.ExpiresAt });
-
-    var destination = Uri.IsWellFormedUriString(returnUrl, UriKind.Relative) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
-        ? returnUrl
-        : authenticated.Roles.Contains("Admin", StringComparer.OrdinalIgnoreCase) ? AppRoutes.AdminDashboard : AppRoutes.Dashboard;
-    return Results.Redirect(destination);
+    return await CompleteSignInAsync(context, authenticated, returnUrl);
 }).DisableAntiforgery();
 
-// Also support legacy/alternative /account/login endpoint
-app.MapPost("/account/login", async (HttpContext context, IHttpClientFactory clientFactory, IConfiguration configuration) =>
+app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory clients) =>
 {
     var form = await context.Request.ReadFormAsync();
-    var email = form["email"].ToString();
-    var password = form["password"].ToString();
-    var returnUrl = form["returnUrl"].ToString();
-    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+    var email = form["Email"].ToString();
+    if (!int.TryParse(form["DepartmentId"], out var departmentId))
     {
-        return Results.Redirect("/login?error=1");
+        return Results.Redirect("/signup?error=1&message=Select%20a%20valid%20department.");
     }
 
-    var api = clientFactory.CreateClient();
-    api.BaseAddress = new Uri(configuration["Api:BaseUrl"] ?? "http://localhost:5000/");
-    using var response = await api.PostAsJsonAsync("api/auth/login", new { Email = email, Password = password });
+    var registration = new ApiRegisterRequest(
+        email,
+        email,
+        form["FullName"].ToString(),
+        form["Password"].ToString(),
+        form["IndexNumber"].ToString(),
+        departmentId);
+
+    HttpResponseMessage response;
+    try
+    {
+        response = await clients.CreateClient("SCMS.Api.Public").PostAsJsonAsync("api/auth/register", registration);
+    }
+    catch
+    {
+        return Results.Redirect("/signup?error=1&message=The%20registration%20service%20could%20not%20be%20reached.");
+    }
+
     if (!response.IsSuccessStatusCode)
     {
-        return Results.Redirect("/login?error=1");
+        var errorMessage = "Registration failed. Check your information and try again.";
+        try
+        {
+            var error = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+            if (error.TryGetProperty("message", out var message) && message.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                errorMessage = message.GetString() ?? errorMessage;
+            }
+        }
+        catch { }
+
+        return Results.Redirect($"/signup?error=1&message={Uri.EscapeDataString(errorMessage)}");
     }
 
-    var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-    if (result is null || string.IsNullOrWhiteSpace(result.Token))
+    var authenticated = await response.Content.ReadFromJsonAsync<ApiAuthResponse>();
+    if (authenticated is null || string.IsNullOrWhiteSpace(authenticated.Token))
     {
-        return Results.Redirect("/login?error=1");
+        return Results.Redirect("/signup?error=1&message=The%20API%20returned%20an%20invalid%20registration%20response.");
     }
 
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.Name, result.FullName),
-        new(ClaimTypes.Email, result.Email),
-        new("access_token", result.Token),
-        new(ApiClient.TokenClaim, result.Token)
-    };
-    claims.AddRange(result.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
-    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-    await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity),
-        new AuthenticationProperties { ExpiresUtc = result.ExpiresAt });
-
-    var destination = Uri.IsWellFormedUriString(returnUrl, UriKind.Relative) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
-        ? returnUrl
-        : result.Roles.Contains("Admin", StringComparer.OrdinalIgnoreCase) ? AppRoutes.AdminDashboard : AppRoutes.Dashboard;
-    return Results.Redirect(destination);
+    return await CompleteSignInAsync(context, authenticated, AppRoutes.Dashboard);
 }).DisableAntiforgery();
-
-app.MapPost("/auth/register", () => Results.Redirect("/login?registration=disabled"))
-    .DisableAntiforgery();
 
 app.MapPost("/auth/logout", async (HttpContext context) =>
 {
@@ -169,11 +202,7 @@ app.MapPost("/auth/logout", async (HttpContext context) =>
     return Results.Redirect("/login");
 }).DisableAntiforgery();
 
-app.MapPost("/account/logout", async (HttpContext context) =>
-{
-    await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-    return Results.Redirect("/login");
-}).DisableAntiforgery();
+app.MapGet("/attachments/{id:int}/download", DownloadAttachmentAsync).RequireAuthorization();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

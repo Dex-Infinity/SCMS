@@ -167,14 +167,5 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             new Department { Id = 3, Code = "AA", Name = "Academic Affairs", Description = "University Central Academic Affairs Office" }
         );
 
-        modelBuilder.Entity<Admin>().HasData(
-            new Admin { Id = 1, StaffId = "ADM-001", FullName = "Dr. Ama Serwaa", Email = "ama.serwaa@university.edu", DepartmentId = 1, Role = "DepartmentAdmin", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-            new Admin { Id = 2, StaffId = "ADM-002", FullName = "Prof. Kwame Mensah", Email = "kwame.mensah@university.edu", DepartmentId = 3, Role = "SuperAdmin", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
-        );
-
-        modelBuilder.Entity<Student>().HasData(
-            new Student { Id = 1, IndexNumber = "10982341", FullName = "Collins Edumadze", Email = "collins@student.university.edu", DepartmentId = 1, CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-            new Student { Id = 2, IndexNumber = "10982342", FullName = "Jessica Puozaa", Email = "jessica@student.university.edu", DepartmentId = 1, CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
-        );
     }
 }

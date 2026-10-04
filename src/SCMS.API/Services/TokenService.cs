@@ -17,7 +17,7 @@ public class JwtSettings
 
 public interface ITokenService
 {
-    Task<string> CreateTokenAsync(ApplicationUser user, IList<string> roles);
+    Task<string> CreateTokenAsync(ApplicationUser user, IList<string> roles, int? studentId = null);
 }
 
 public class TokenService : ITokenService
@@ -29,7 +29,7 @@ public class TokenService : ITokenService
         _jwtSettings = jwtSettings.Value;
     }
 
-    public Task<string> CreateTokenAsync(ApplicationUser user, IList<string> roles)
+    public Task<string> CreateTokenAsync(ApplicationUser user, IList<string> roles, int? studentId = null)
     {
         var claims = new List<Claim>
         {
@@ -43,6 +43,11 @@ public class TokenService : ITokenService
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        if (studentId.HasValue)
+        {
+            claims.Add(new Claim("student_id", studentId.Value.ToString()));
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));

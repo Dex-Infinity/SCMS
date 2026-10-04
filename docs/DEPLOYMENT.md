@@ -151,6 +151,7 @@ It automatically restores, builds, and tests the solution on every push to `main
 ## Production Deployment
 
 1. Set all required secrets as environment variables on the host or in the CI/CD pipeline (see [ENVIRONMENT_CONFIG.md](./ENVIRONMENT_CONFIG.md))
+  Set `ApiSettings__BaseUrl` for the web service to the deployed API's internal HTTPS URL.
 2. Set `ASPNETCORE_ENVIRONMENT=Production`
 3. Run:
    ```bash

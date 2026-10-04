@@ -9,4 +9,5 @@ namespace SCMS.Web.Services;
 public interface IMyComplaintsService
 {
     Task<IReadOnlyList<ComplaintSummary>> GetAsync(CancellationToken cancellationToken = default);
+    Task<ComplaintSummary?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 }

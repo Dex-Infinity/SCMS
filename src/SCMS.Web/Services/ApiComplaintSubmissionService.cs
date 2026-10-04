@@ -2,15 +2,13 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.Extensions.Options;
 using SCMS.Web.Models;
 
 namespace SCMS.Web.Services;
 
 public sealed class ApiComplaintSubmissionService(
     ApiClient apiClient,
-    AuthenticationStateProvider authenticationStateProvider,
-    IOptions<ApiSettings> settings) : IComplaintSubmissionService
+    AuthenticationStateProvider authenticationStateProvider) : IComplaintSubmissionService
 {
     private const long MaxAttachmentSize = 5 * 1024 * 1024;
 
@@ -20,9 +18,11 @@ public sealed class ApiComplaintSubmissionService(
         CancellationToken cancellationToken = default)
     {
         var state = await authenticationStateProvider.GetAuthenticationStateAsync();
-        var email = state.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-        var studentId = settings.Value.RequireStudentId(email);
-        var departmentId = settings.Value.RequireDepartmentId(form.Category);
+        if (!int.TryParse(state.User.FindFirst("student_id")?.Value, out var studentId))
+        {
+            throw new UnauthorizedAccessException("This account is not linked to a student profile.");
+        }
+
         using var createRequest = new HttpRequestMessage(HttpMethod.Post, "api/complaints")
         {
             Content = JsonContent.Create(new ApiComplaintCreateRequest
@@ -30,7 +30,7 @@ public sealed class ApiComplaintSubmissionService(
                 Title = form.Subject,
                 Description = form.Description,
                 StudentId = studentId,
-                DepartmentId = departmentId
+                DepartmentId = form.DepartmentId
             })
         };
         using var createResponse = await apiClient.SendAsync(createRequest, cancellationToken);

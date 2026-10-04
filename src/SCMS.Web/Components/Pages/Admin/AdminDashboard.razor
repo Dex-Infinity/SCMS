@@ -1,6 +1,7 @@
 @page "/admin/dashboard"
 @attribute [Authorize(Roles = "Admin")]
 @inject ScmsApiClient Api
+@inject IDepartmentCatalogService DepartmentCatalog
 @inject ILogger<AdminDashboard> Logger
 
 <PageTitle>Administrator Dashboard - SCMS Portal</PageTitle>
@@ -55,11 +56,11 @@
                     </div>
                     <div class="relative">
                         <label for="queue-department" class="sr-only">Filter by department</label>
-                        <select id="queue-department" class="field-input" @bind="_departmentFilter">
+                        <select id="queue-department" class="field-input" value="@(_departmentFilter?.ToString() ?? string.Empty)" @onchange="DepartmentChangedAsync">
                             <option value="">All departments</option>
-                            @foreach (var department in Departments)
+                            @foreach (var department in _departments ?? [])
                             {
-                                <option value="@department">@department</option>
+                                <option value="@department.Id">@department.Name</option>
                             }
                         </select>
                     </div>
@@ -131,7 +132,7 @@
                                 @if (_assigningId == complaint.Id)
                                 {
                                     <tr class="border-b border-surface-variant bg-surface-container-low"><td colspan="6" class="p-lg">
-                                        <AssignmentForm ComplaintId="complaint.Id" Model="assignment" Busy="@(_busyId == complaint.Id)" OnSave="item => SaveAssignmentAsync(complaint.Id, item)" OnCancel="CloseAssignment" />
+                                        <AssignmentForm ComplaintId="complaint.Id" Departments="_departments ?? []" Model="assignment" Busy="@(_busyId == complaint.Id)" OnSave="item => SaveAssignmentAsync(complaint.Id, item)" OnCancel="CloseAssignment" />
                                     </td></tr>
                                 }
                             }
@@ -163,7 +164,7 @@
                             </div>
                             @if (_assigningId == complaint.Id)
                             {
-                                <AssignmentForm ComplaintId="complaint.Id" Model="assignment" Busy="@(_busyId == complaint.Id)" OnSave="item => SaveAssignmentAsync(complaint.Id, item)" OnCancel="CloseAssignment" />
+                                <AssignmentForm ComplaintId="complaint.Id" Departments="_departments ?? []" Model="assignment" Busy="@(_busyId == complaint.Id)" OnSave="item => SaveAssignmentAsync(complaint.Id, item)" OnCancel="CloseAssignment" />
                             }
                         </article>
                     }
@@ -175,11 +176,12 @@
 
 @code {
     private List<ApiComplaint>? _complaints;
+    private IReadOnlyList<DepartmentOption>? _departments;
     private readonly Dictionary<int, string> _statusSelections = [];
     private readonly Dictionary<int, ComplaintAssignment> _assignments = [];
     private bool _loadFailed;
     private string _search = string.Empty;
-    private string _departmentFilter = string.Empty;
+    private int? _departmentFilter;
     private string _statusFilter = string.Empty;
     private int? _busyId;
     private int? _assigningId;
@@ -188,8 +190,7 @@
 
     private int PendingCount => _complaints?.Count(item => item.Status == ComplaintStatus.Pending) ?? 0;
     private int InReviewCount => _complaints?.Count(item => item.Status is ComplaintStatus.UnderReview or ComplaintStatus.Assigned) ?? 0;
-    private bool HasFilters => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrWhiteSpace(_departmentFilter) || !string.IsNullOrWhiteSpace(_statusFilter);
-    private IEnumerable<string> Departments => (_complaints ?? []).Select(item => item.DepartmentName).Where(name => !string.IsNullOrWhiteSpace(name)).Select(name => name!).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase);
+    private bool HasFilters => !string.IsNullOrWhiteSpace(_search) || _departmentFilter.HasValue || !string.IsNullOrWhiteSpace(_statusFilter);
     private IEnumerable<ApiComplaint> FilteredComplaints => (_complaints ?? []).Where(MatchesFilters).OrderByDescending(item => item.CreatedAt);
 
     protected override Task OnInitializedAsync() => LoadAsync();
@@ -200,7 +201,8 @@
         _actionError = null;
         try
         {
-            _complaints = (await Api.GetComplaintsAsync()).ToList();
+            _departments = await DepartmentCatalog.GetAllAsync();
+            _complaints = (await Api.GetComplaintsAsync(_departmentFilter)).ToList();
             foreach (var complaint in _complaints)
             {
                 _statusSelections.TryAdd(complaint.Id, complaint.Status.ToString());
@@ -220,9 +222,8 @@
             || complaint.Id.ToString().Contains(query, StringComparison.OrdinalIgnoreCase)
             || (complaint.StudentName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false)
             || (complaint.StudentEmail?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false);
-        var matchesDepartment = _departmentFilter.Length == 0 || string.Equals(complaint.DepartmentName, _departmentFilter, StringComparison.OrdinalIgnoreCase);
         var matchesStatus = _statusFilter.Length == 0 || complaint.Status.ToString() == _statusFilter;
-        return matchesSearch && matchesDepartment && matchesStatus;
+        return matchesSearch && matchesStatus;
     }
 
     private ComplaintAssignment AssignmentFor(int id)
@@ -300,10 +301,17 @@
     private void ToggleAssignment(int id) => _assigningId = _assigningId == id ? null : id;
     private void CloseAssignment() => _assigningId = null;
 
-    private void ClearFilters()
+    private async Task DepartmentChangedAsync(ChangeEventArgs args)
+    {
+        _departmentFilter = int.TryParse(args.Value?.ToString(), out var departmentId) ? departmentId : null;
+        await LoadAsync();
+    }
+
+    private async Task ClearFilters()
     {
         _search = string.Empty;
-        _departmentFilter = string.Empty;
+        _departmentFilter = null;
         _statusFilter = string.Empty;
+        await LoadAsync();
     }
 }

@@ -9,8 +9,13 @@ namespace SCMS.Web.Services;
 
 public sealed class ScmsApiClient(HttpClient http, AuthenticationStateProvider authenticationState)
 {
-    public Task<IReadOnlyList<ApiComplaint>> GetComplaintsAsync(CancellationToken cancellationToken = default) =>
-        SendAsync<IReadOnlyList<ApiComplaint>>(HttpMethod.Get, "api/complaints", cancellationToken: cancellationToken);
+    public Task<IReadOnlyList<ApiComplaint>> GetComplaintsAsync(int? departmentId = null, CancellationToken cancellationToken = default) =>
+        SendAsync<IReadOnlyList<ApiComplaint>>(HttpMethod.Get,
+            departmentId.HasValue ? $"api/complaints/department/{departmentId.Value}" : "api/complaints",
+            cancellationToken: cancellationToken);
+
+    public Task<ApiComplaint> GetComplaintAsync(int id, CancellationToken cancellationToken = default) =>
+        SendAsync<ApiComplaint>(HttpMethod.Get, $"api/complaints/{id}", cancellationToken: cancellationToken);
 
     public Task<ApiComplaint> UpdateComplaintStatusAsync(int id, ComplaintStatus status, CancellationToken cancellationToken = default) =>
         SendAsync<ApiComplaint>(HttpMethod.Put, $"api/complaints/{id}/status", new ComplaintStatusUpdate { Status = status }, cancellationToken);
@@ -18,8 +23,28 @@ public sealed class ScmsApiClient(HttpClient http, AuthenticationStateProvider a
     public Task<ApiComplaint> AssignComplaintAsync(int id, ComplaintAssignment assignment, CancellationToken cancellationToken = default) =>
         SendAsync<ApiComplaint>(HttpMethod.Put, $"api/complaints/{id}/assign", assignment, cancellationToken);
 
-    public Task<IReadOnlyList<ApiNotification>> GetNotificationsAsync(CancellationToken cancellationToken = default) =>
-        SendAsync<IReadOnlyList<ApiNotification>>(HttpMethod.Get, "api/notifications", cancellationToken: cancellationToken);
+    public Task<IReadOnlyList<ApiNotification>> GetNotificationsAsync(bool? unreadOnly = null, CancellationToken cancellationToken = default)
+    {
+        var path = "api/notifications";
+        if (unreadOnly.HasValue) path += $"?unreadOnly={unreadOnly.Value.ToString().ToLowerInvariant()}";
+        return SendAsync<IReadOnlyList<ApiNotification>>(HttpMethod.Get, path, cancellationToken: cancellationToken);
+    }
+
+    public Task<ApiNotification> GetNotificationAsync(int id, CancellationToken cancellationToken = default) =>
+        SendAsync<ApiNotification>(HttpMethod.Get, $"api/notifications/{id}", cancellationToken: cancellationToken);
+
+    public Task<IReadOnlyList<ApiNotification>> GetNotificationsForUserAsync(string userId, bool? unreadOnly = null, CancellationToken cancellationToken = default)
+    {
+        var path = $"api/notifications/user/{Uri.EscapeDataString(userId)}";
+        if (unreadOnly.HasValue) path += $"?unreadOnly={unreadOnly.Value.ToString().ToLowerInvariant()}";
+        return SendAsync<IReadOnlyList<ApiNotification>>(HttpMethod.Get, path, cancellationToken: cancellationToken);
+    }
+
+    public Task<ApiNotification> CreateNotificationAsync(ApiNotificationCreate notification, CancellationToken cancellationToken = default) =>
+        SendAsync<ApiNotification>(HttpMethod.Post, "api/notifications", notification, cancellationToken);
+
+    public Task DeleteNotificationAsync(int id, CancellationToken cancellationToken = default) =>
+        SendAsync<object>(HttpMethod.Delete, $"api/notifications/{id}", cancellationToken: cancellationToken);
 
     public Task MarkNotificationReadAsync(int id, CancellationToken cancellationToken = default) =>
         SendAsync<object>(HttpMethod.Put, $"api/notifications/{id}/read", cancellationToken: cancellationToken);
@@ -44,6 +69,12 @@ public sealed class ScmsApiClient(HttpClient http, AuthenticationStateProvider a
         var response = await SendAsync<UnreadCountResult>(HttpMethod.Get, "api/notifications/unread-count", cancellationToken: cancellationToken);
         return response.UnreadCount;
     }
+
+    public Task<IReadOnlyList<ApiAttachment>> GetAttachmentsAsync(int complaintId, CancellationToken cancellationToken = default) =>
+        SendAsync<IReadOnlyList<ApiAttachment>>(HttpMethod.Get, $"api/attachments/complaints/{complaintId}", cancellationToken: cancellationToken);
+
+    public Task DeleteAttachmentAsync(int id, CancellationToken cancellationToken = default) =>
+        SendAsync<object>(HttpMethod.Delete, $"api/attachments/{id}", cancellationToken: cancellationToken);
 
     private async Task<T> SendAsync<T>(HttpMethod method, string path, object? body = null, CancellationToken cancellationToken = default)
     {
