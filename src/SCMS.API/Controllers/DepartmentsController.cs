@@ -10,7 +10,7 @@ namespace SCMS.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[Authorize]
+[AllowAnonymous]
 public class DepartmentsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -22,9 +22,8 @@ public class DepartmentsController : ControllerBase
 
     // GET api/departments - Get list of all departments
     [HttpGet]
-    [AllowAnonymous]
     [ProducesResponseType(typeof(IEnumerable<DepartmentResponseDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
     {
         var departments = await _context.Departments
             .AsNoTracking()
@@ -36,21 +35,20 @@ public class DepartmentsController : ControllerBase
                 Name = d.Name,
                 Description = d.Description
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return Ok(departments);
     }
 
     // GET api/departments/{id} - Get a single department by ID
     [HttpGet("{id:int}")]
-    [AllowAnonymous]
     [ProducesResponseType(typeof(DepartmentResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken = default)
     {
         var department = await _context.Departments
             .AsNoTracking()
-            .FirstOrDefaultAsync(d => d.Id == id);
+            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
 
         if (department == null)
         {
@@ -64,29 +62,5 @@ public class DepartmentsController : ControllerBase
             Name = department.Name,
             Description = department.Description
         });
-    }
-}
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-[AllowAnonymous]
-public sealed class DepartmentsController(ApplicationDbContext dbContext) : ControllerBase
-{
-    [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<DepartmentOptionDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
-    {
-        var departments = await dbContext.Departments
-            .AsNoTracking()
-            .OrderBy(department => department.Name)
-            .Select(department => new DepartmentOptionDto
-            {
-                Id = department.Id,
-                Code = department.Code,
-                Name = department.Name
-            })
-            .ToListAsync(cancellationToken);
-
-        return Ok(departments);
     }
 }

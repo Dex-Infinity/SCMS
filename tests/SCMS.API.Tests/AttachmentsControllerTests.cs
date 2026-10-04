@@ -36,7 +36,7 @@ public class AttachmentsControllerTests
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var user = new ClaimsPrincipal(identity);
 
-        return new AttachmentsController(attachmentService, complaintRepo, attachmentRepo)
+        return new AttachmentsController(attachmentService, null, complaintRepo, attachmentRepo)
         {
             ControllerContext = new ControllerContext
             {

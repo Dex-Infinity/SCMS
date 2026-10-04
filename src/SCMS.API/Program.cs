@@ -230,9 +230,6 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 // Enable CORS for frontend integration
 app.UseCors("AllowFrontend");
 
-// Ensure Database & Tables are created on app startup and seed roles/admin/students
-// Ensure Database & Tables are created on app startup
-// Ensure Database & Tables are created on app startup and seed roles/admin
 // Apply database migrations and seed configured roles/admin before serving requests.
 using (var scope = app.Services.CreateScope())
 {
@@ -240,13 +237,6 @@ using (var scope = app.Services.CreateScope())
     var dbContext = services.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
 
-        var initializer = services.GetRequiredService<IDbInitializer>();
-        await initializer.InitializeAsync();
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogWarning("SQL Server initialization notice: {Message}.", ex.Message);
-    }
     var initializer = services.GetRequiredService<IDbInitializer>();
     await initializer.InitializeAsync();
 }
