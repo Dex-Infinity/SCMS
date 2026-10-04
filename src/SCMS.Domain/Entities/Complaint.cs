@@ -21,4 +21,5 @@ public class Complaint
     public Student? Student { get; set; }
     public Department? Department { get; set; }
     public Admin? AssignedTo { get; set; }
+    public ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
 }
