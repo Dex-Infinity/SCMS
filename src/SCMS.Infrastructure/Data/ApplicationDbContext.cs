@@ -75,16 +75,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).IsRequired();
 
-            // Indexes for common queries
+            // Indexes for common query patterns and analytics
+            entity.HasIndex(e => e.StudentId);
             entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.DepartmentId);
             entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.StudentId, e.Status });
             entity.HasIndex(e => new { e.StudentId, e.CreatedAt });
             entity.HasIndex(e => new { e.DepartmentId, e.Status });
-            // Indexes for common query patterns
-            entity.HasIndex(e => e.StudentId);                    // complaints by student
-            entity.HasIndex(e => e.Status);                       // complaints by status
-            entity.HasIndex(e => e.DepartmentId);                 // complaints by department
-            entity.HasIndex(e => new { e.StudentId, e.Status });  // student's complaints filtered by status
 
             entity.HasOne(e => e.Student)
                 .WithMany(s => s.Complaints)
@@ -129,6 +127,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
             // Index for audit log queries (all history for a complaint)
             entity.HasIndex(e => e.ComplaintId);
+            entity.HasIndex(e => e.ChangedAt);
 
             entity.HasOne(e => e.Complaint)
                 .WithMany(c => c.StatusHistories)
@@ -142,51 +141,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Message).IsRequired();
-            entity.Property(e => e.UserId).IsRequired();
+            entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
 
             // Indexes for user notifications query performance
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => new { e.UserId, e.IsRead });
+            entity.HasIndex(e => e.ComplaintId);
             entity.HasIndex(e => e.CreatedAt);
-        });
-
-        // StatusHistory Configuration
-        modelBuilder.Entity<StatusHistory>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Comment).HasMaxLength(1000);
-            entity.Property(e => e.ChangedBy).IsRequired().HasMaxLength(150);
-
-            entity.HasIndex(e => e.ComplaintId);
-            entity.HasIndex(e => e.ChangedAt);
-
-            entity.HasOne(e => e.Complaint)
-                .WithMany(c => c.StatusHistories)
-                .HasForeignKey(e => e.ComplaintId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        // Attachment Configuration
-        modelBuilder.Entity<Attachment>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
-            entity.Property(e => e.StoredFileName).IsRequired().HasMaxLength(255);
-            entity.Property(e => e.ContentType).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.UploadedBy).IsRequired().HasMaxLength(150);
-
-            entity.HasIndex(e => e.ComplaintId);
-
-            entity.HasOne(e => e.Complaint)
-                .WithMany(c => c.Attachments)
-                .HasForeignKey(e => e.ComplaintId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
-
-            // Indexes: fetch all notifications for a user; filter unread; join to complaint
-            entity.HasIndex(e => e.UserId);
-            entity.HasIndex(e => new { e.UserId, e.IsRead });
-            entity.HasIndex(e => e.ComplaintId);
         });
 
         // UserSetting Configuration
@@ -210,6 +171,5 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             new Department { Id = 2, Code = "EE", Name = "Electrical Engineering", Description = "Department of Electrical & Computer Engineering" },
             new Department { Id = 3, Code = "AA", Name = "Academic Affairs", Description = "University Central Academic Affairs Office" }
         );
-
     }
 }
