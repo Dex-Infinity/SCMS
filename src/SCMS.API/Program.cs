@@ -100,8 +100,6 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Configure EF Core DbContext with SQL Server
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 // Prefer .NET's connection-string setting, then Render's PostgreSQL URL.
 var connectionString = builder.Configuration["DATABASE_URL"];
 if (string.IsNullOrWhiteSpace(connectionString) || connectionString.StartsWith("#{", StringComparison.Ordinal))
