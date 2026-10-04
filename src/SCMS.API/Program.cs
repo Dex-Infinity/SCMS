@@ -15,19 +15,27 @@ var builder = WebApplication.CreateBuilder(args);
 
 var deploymentOverrides = new Dictionary<string, string?>();
 MapEnvironmentAlias("Jwt:Key", "SCMS_JWT_KEY");
-MapEnvironmentAlias("Attachments:StoragePath", "SCMS_UPLOAD_PATH");
-MapEnvironmentAlias("Seed:AdminEmail", "SCMS_ADMIN_EMAIL");
-MapEnvironmentAlias("Seed:AdminPassword", "SCMS_ADMIN_PASSWORD");
-MapEnvironmentAlias("Seed:AdminUserName", "SCMS_ADMIN_USERNAME");
-MapEnvironmentAlias("Seed:AdminFullName", "SCMS_ADMIN_FULLNAME");
+MapEnvironmentAlias("Attachments:StoragePath", "SCMS_UPLOAD_PATH", "uploads");
+MapEnvironmentAlias("Seed:AdminEmail", "SCMS_ADMIN_EMAIL", string.Empty);
+MapEnvironmentAlias("Seed:AdminPassword", "SCMS_ADMIN_PASSWORD", string.Empty);
+MapEnvironmentAlias("Seed:AdminUserName", "SCMS_ADMIN_USERNAME", string.Empty);
+MapEnvironmentAlias("Seed:AdminFullName", "SCMS_ADMIN_FULLNAME", string.Empty);
 builder.Configuration.AddInMemoryCollection(deploymentOverrides);
 
-void MapEnvironmentAlias(string configurationKey, string environmentKey)
+void MapEnvironmentAlias(string configurationKey, string environmentKey, string? defaultValue = null)
 {
     var configuredValue = builder.Configuration[configurationKey];
     if (string.IsNullOrWhiteSpace(configuredValue) || configuredValue.StartsWith("#{", StringComparison.Ordinal))
     {
-        deploymentOverrides[configurationKey] = builder.Configuration[environmentKey];
+        var envValue = builder.Configuration[environmentKey];
+        if (!string.IsNullOrWhiteSpace(envValue) && !envValue.StartsWith("#{", StringComparison.Ordinal))
+        {
+            deploymentOverrides[configurationKey] = envValue;
+        }
+        else if (defaultValue != null)
+        {
+            deploymentOverrides[configurationKey] = defaultValue;
+        }
     }
 }
 
@@ -54,14 +62,22 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5001",
-                "https://localhost:5001",
-                "http://localhost:5000",
-                "https://localhost:5000",
-                "http://localhost:3000",
-                "http://127.0.0.1:5001",
-                "http://127.0.0.1:5000")
+        var configuredOrigins = builder.Configuration["Cors:AllowedOrigins"]
+            ?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            ?? Array.Empty<string>();
+
+        policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin)) return false;
+                if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    if (uri.Host == "localhost" || uri.Host == "127.0.0.1" || uri.Host.EndsWith(".onrender.com", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+                return configuredOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase);
+            })
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -128,6 +144,21 @@ static string NormalizePostgresConnectionString(string value)
     if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
         || (uri.Scheme != "postgres" && uri.Scheme != "postgresql"))
     {
+        if (!value.Contains("Trust Server Certificate", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var rawBuilder = new Npgsql.NpgsqlConnectionStringBuilder(value)
+                {
+                    TrustServerCertificate = true
+                };
+                return rawBuilder.ConnectionString;
+            }
+            catch
+            {
+                return value;
+            }
+        }
         return value;
     }
 
@@ -145,7 +176,8 @@ static string NormalizePostgresConnectionString(string value)
         Database = database,
         Username = Uri.UnescapeDataString(credentials[0]),
         Password = Uri.UnescapeDataString(credentials[1]),
-        SslMode = Npgsql.SslMode.Require
+        SslMode = Npgsql.SslMode.Require,
+        TrustServerCertificate = true
     };
 
     var sslMode = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
