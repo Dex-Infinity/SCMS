@@ -40,6 +40,11 @@ public class TokenService : ITokenService
             new(ClaimTypes.Name, user.UserName ?? string.Empty)
         };
 
+        if (studentId.HasValue)
+        {
+            claims.Add(new Claim("student_id", studentId.Value.ToString()));
+        }
+
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));

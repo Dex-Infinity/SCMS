@@ -10,6 +10,7 @@ public interface IComplaintService
     Task<IEnumerable<ComplaintResponseDto>> GetComplaintsByStudentIdAsync(int studentId);
     Task<IEnumerable<ComplaintResponseDto>> GetComplaintsByDepartmentIdAsync(int departmentId);
     Task<ComplaintResponseDto> CreateComplaintAsync(ComplaintCreateDto createDto);
-    Task<ComplaintResponseDto?> UpdateStatusAsync(int id, ComplaintStatus status);
+    Task<ComplaintResponseDto?> UpdateStatusAsync(int id, ComplaintStatus status, string? comment = null, string? changedBy = null);
     Task<ComplaintResponseDto?> AssignComplaintAsync(int id, int departmentId, int? assignedToId);
+    Task<IEnumerable<StatusHistoryResponseDto>> GetStatusHistoryAsync(int complaintId);
 }

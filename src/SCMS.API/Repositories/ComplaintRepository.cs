@@ -97,4 +97,20 @@ public class ComplaintRepository : IComplaintRepository
         await _context.SaveChangesAsync();
         return await GetByIdAsync(id);
     }
+
+    // Fetch chronological status history for a complaint
+    public async Task<IEnumerable<StatusHistory>> GetStatusHistoryAsync(int complaintId)
+    {
+        return await _context.StatusHistories
+            .Where(h => h.ComplaintId == complaintId)
+            .OrderBy(h => h.ChangedAt)
+            .ToListAsync();
+    }
+
+    // Record a new status history entry
+    public async Task AddStatusHistoryAsync(StatusHistory history)
+    {
+        _context.StatusHistories.Add(history);
+        await _context.SaveChangesAsync();
+    }
 }

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using SCMS.API.DTOs;
+using SCMS.Infrastructure.Data;
 using SCMS.Infrastructure.Identity;
 
 namespace SCMS.API.Services;
@@ -14,10 +16,12 @@ public interface IProfileService
 public class ProfileService : IProfileService
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ApplicationDbContext _context;
 
-    public ProfileService(UserManager<ApplicationUser> userManager)
+    public ProfileService(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
     {
         _userManager = userManager;
+        _context = context;
     }
 
     // Fetch the current user's profile
@@ -54,6 +58,17 @@ public class ProfileService : IProfileService
         {
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             throw new InvalidOperationException($"Profile update failed: {errors}");
+        }
+
+        // Synchronize updated FullName with Student table if user is a student
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            var student = await _context.Students.FirstOrDefaultAsync(s => s.Email == user.Email);
+            if (student != null)
+            {
+                student.FullName = dto.FullName;
+                await _context.SaveChangesAsync();
+            }
         }
 
         var roles = (await _userManager.GetRolesAsync(user)).ToList();

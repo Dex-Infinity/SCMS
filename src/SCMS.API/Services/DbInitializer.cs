@@ -54,6 +54,7 @@ public class DbInitializer : IDbInitializer
         }
 
         await SeedAdminUserAsync();
+        await SeedStudentUsersAsync();
     }
 
     private async Task SeedRolesAsync()
@@ -87,6 +88,35 @@ public class DbInitializer : IDbInitializer
         if (result.Succeeded)
         {
             await _userManager.AddToRoleAsync(user, AdminRole);
+        }
+    }
+
+    private async Task SeedStudentUsersAsync()
+    {
+        var sampleStudents = new[]
+        {
+            ("collins@student.university.edu", "collins", "Collins Edumadze", "Student@123456"),
+            ("jessica@student.university.edu", "jessica", "Jessica Puozaa", "Student@123456")
+        };
+
+        foreach (var (email, userName, fullName, password) in sampleStudents)
+        {
+            var existing = await _userManager.FindByEmailAsync(email);
+            if (existing != null) continue;
+
+            var user = new ApplicationUser
+            {
+                UserName = userName,
+                Email = email,
+                FullName = fullName,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userManager.CreateAsync(user, password);
+            if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, StudentRole);
+            }
         }
     }
 }

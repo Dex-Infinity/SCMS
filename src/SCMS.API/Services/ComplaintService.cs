@@ -5,7 +5,7 @@ using SCMS.Domain.Enums;
 
 namespace SCMS.API.Services;
 
-// Service for complaint business logic and notification dispatching
+// Service for complaint business logic, audit history, and notification dispatching
 public class ComplaintService : IComplaintService
 {
     private readonly IComplaintRepository _repository;
@@ -45,7 +45,7 @@ public class ComplaintService : IComplaintService
         return complaints.Select(MapToResponseDto);
     }
 
-    // Create a new complaint record
+    // Create a new complaint record with initial status history audit
     public async Task<ComplaintResponseDto> CreateComplaintAsync(ComplaintCreateDto createDto)
     {
         var complaint = new Complaint
@@ -54,20 +54,41 @@ public class ComplaintService : IComplaintService
             Description = createDto.Description,
             StudentId = createDto.StudentId,
             DepartmentId = createDto.DepartmentId,
+            Priority = createDto.Priority,
             Status = ComplaintStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
         var created = await _repository.CreateAsync(complaint);
+
+        // Record initial status history entry
+        await _repository.AddStatusHistoryAsync(new StatusHistory
+        {
+            ComplaintId = created.Id,
+            Status = ComplaintStatus.Pending,
+            Comment = "Complaint submitted.",
+            ChangedBy = created.StudentName ?? $"Student #{created.StudentId}",
+            ChangedAt = DateTime.UtcNow
+        });
+
         return MapToResponseDto(created);
     }
 
-    // Update status and send alert notification
-    public async Task<ComplaintResponseDto?> UpdateStatusAsync(int id, ComplaintStatus status)
+    // Update status, persist audit history, and send alert notification
+    public async Task<ComplaintResponseDto?> UpdateStatusAsync(int id, ComplaintStatus status, string? comment = null, string? changedBy = null)
     {
         var updated = await _repository.UpdateStatusAsync(id, status);
         if (updated != null)
         {
+            await _repository.AddStatusHistoryAsync(new StatusHistory
+            {
+                ComplaintId = updated.Id,
+                Status = status,
+                Comment = !string.IsNullOrWhiteSpace(comment) ? comment : $"Status updated to '{status}'.",
+                ChangedBy = !string.IsNullOrWhiteSpace(changedBy) ? changedBy : "Admin",
+                ChangedAt = DateTime.UtcNow
+            });
+
             await _notificationService.NotifyStatusChangeAsync(updated.Id, updated.StudentId, status.ToString());
             return MapToResponseDto(updated);
         }
@@ -81,11 +102,37 @@ public class ComplaintService : IComplaintService
         var assigned = await _repository.AssignAsync(id, departmentId, assignedToId);
         if (assigned != null)
         {
+            await _repository.AddStatusHistoryAsync(new StatusHistory
+            {
+                ComplaintId = assigned.Id,
+                Status = ComplaintStatus.Assigned,
+                Comment = assignedToId.HasValue
+                    ? $"Assigned to department #{departmentId} and staff member #{assignedToId.Value}."
+                    : $"Assigned to department #{departmentId}.",
+                ChangedBy = "Admin",
+                ChangedAt = DateTime.UtcNow
+            });
+
             await _notificationService.NotifyAssignmentAsync(assigned.Id, departmentId, assignedToId);
             return MapToResponseDto(assigned);
         }
 
         return null;
+    }
+
+    // Fetch chronological status audit history for a complaint
+    public async Task<IEnumerable<StatusHistoryResponseDto>> GetStatusHistoryAsync(int complaintId)
+    {
+        var histories = await _repository.GetStatusHistoryAsync(complaintId);
+        return histories.Select(h => new StatusHistoryResponseDto
+        {
+            Id = h.Id,
+            ComplaintId = h.ComplaintId,
+            Status = h.Status,
+            Comment = h.Comment,
+            ChangedBy = h.ChangedBy,
+            ChangedAt = h.ChangedAt
+        });
     }
 
     // Helper: Map Complaint entity to ComplaintResponseDto with enriched entity names
@@ -102,6 +149,7 @@ public class ComplaintService : IComplaintService
             DepartmentId = complaint.DepartmentId,
             DepartmentName = complaint.Department?.Name,
             Status = complaint.Status,
+            Priority = complaint.Priority,
             AssignedToId = complaint.AssignedToId,
             AssignedToName = complaint.AssignedTo?.FullName,
             CreatedAt = complaint.CreatedAt,

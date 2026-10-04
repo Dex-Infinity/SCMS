@@ -12,4 +12,6 @@ public interface IComplaintRepository
     Task<Complaint> CreateAsync(Complaint complaint);
     Task<Complaint?> UpdateStatusAsync(int id, ComplaintStatus status);
     Task<Complaint?> AssignAsync(int id, int departmentId, int? assignedToId);
+    Task<IEnumerable<StatusHistory>> GetStatusHistoryAsync(int complaintId);
+    Task AddStatusHistoryAsync(StatusHistory history);
 }
