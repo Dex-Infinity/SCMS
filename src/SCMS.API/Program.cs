@@ -1,12 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SCMS.API.Middleware;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SCMS.API.Middleware;
 using SCMS.API.Repositories;
 using SCMS.API.Services;
 using SCMS.Infrastructure.Data;
@@ -31,6 +30,26 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(problemDetails);
         };
     });
+
+// Configure CORS for web frontend integration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5001",
+                "https://localhost:5001",
+                "http://localhost:5000",
+                "https://localhost:5000",
+                "http://localhost:3000",
+                "http://127.0.0.1:5001",
+                "http://127.0.0.1:5000")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -63,7 +82,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Configure EF Core DbContext with SQL Server (and fallback to InMemory for seamless dev testing)
+// Configure EF Core DbContext with SQL Server
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrWhiteSpace(connectionString))
@@ -120,8 +139,6 @@ builder.Services.AddAuthentication(options =>
 
 // Dependency Injection Registrations
 builder.Services.Configure<AttachmentOptions>(builder.Configuration.GetSection("Attachments"));
-
-// Dependency Injection Registrations
 builder.Services.AddScoped<IComplaintRepository, ComplaintRepository>();
 builder.Services.AddScoped<IComplaintService, ComplaintService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
@@ -141,8 +158,10 @@ var app = builder.Build();
 // Catch unhandled exceptions and return consistent ProblemDetails responses
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Ensure Database & Tables are created on app startup
-// Ensure Database & Tables are created on app startup and seed roles/admin
+// Enable CORS for frontend integration
+app.UseCors("AllowFrontend");
+
+// Ensure Database & Tables are created on app startup and seed roles/admin/students
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -156,7 +175,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning("SQL Server LocalDB connection failed ({Message}). Falling back to In-Memory Database for API testing.", ex.Message);
+        app.Logger.LogWarning("SQL Server initialization notice: {Message}.", ex.Message);
     }
 }
 

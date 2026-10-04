@@ -18,6 +18,8 @@ public class ComplaintCreateDto
     public int StudentId { get; set; }
 
     public int? DepartmentId { get; set; }
+
+    public PriorityLevel Priority { get; set; } = PriorityLevel.Medium;
 }
 
 // Data transfer object for updating status
@@ -55,9 +57,24 @@ public class ComplaintResponseDto
     public ComplaintStatus Status { get; set; }
     public string StatusText => Status.ToString();
 
+    public PriorityLevel Priority { get; set; } = PriorityLevel.Medium;
+    public string PriorityText => Priority.ToString();
+
     public int? AssignedToId { get; set; }
     public string? AssignedToName { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+}
+
+// Data transfer object representing a status change audit entry
+public class StatusHistoryResponseDto
+{
+    public int Id { get; set; }
+    public int ComplaintId { get; set; }
+    public ComplaintStatus Status { get; set; }
+    public string StatusText => Status.ToString();
+    public string? Comment { get; set; }
+    public string ChangedBy { get; set; } = string.Empty;
+    public DateTime ChangedAt { get; set; }
 }

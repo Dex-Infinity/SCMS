@@ -170,11 +170,62 @@ public class ComplaintsControllerTests
         var list = Assert.IsAssignableFrom<IEnumerable<ComplaintResponseDto>>(okResult.Value);
         Assert.Single(list);
     }
+
+    [Fact]
+    public async Task GetHistory_StudentForbidden_WhenNotOwner()
+    {
+        // Arrange
+        var fakeService = new FakeComplaintService();
+        fakeService.Complaints.Add(new ComplaintResponseDto
+        {
+            Id = 1,
+            StudentId = 99
+        });
+
+        var controller = CreateControllerWithUser(fakeService, role: "Student", userId: "42");
+
+        // Act
+        var result = await controller.GetHistory(1);
+
+        // Assert
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetHistory_OwnerCanViewHistory()
+    {
+        // Arrange
+        var fakeService = new FakeComplaintService();
+        fakeService.Complaints.Add(new ComplaintResponseDto
+        {
+            Id = 1,
+            StudentId = 42
+        });
+        fakeService.Histories.Add(new StatusHistoryResponseDto
+        {
+            Id = 1,
+            ComplaintId = 1,
+            Status = ComplaintStatus.Pending,
+            Comment = "Complaint submitted."
+        });
+
+        var controller = CreateControllerWithUser(fakeService, role: "Student", userId: "42");
+
+        // Act
+        var result = await controller.GetHistory(1);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var list = Assert.IsAssignableFrom<IEnumerable<StatusHistoryResponseDto>>(okResult.Value);
+        Assert.Single(list);
+    }
 }
 
 internal class FakeComplaintService : IComplaintService
 {
     public List<ComplaintResponseDto> Complaints { get; } = new();
+    public List<StatusHistoryResponseDto> Histories { get; } = new();
 
     public Task<IEnumerable<ComplaintResponseDto>> GetAllComplaintsAsync() =>
         Task.FromResult<IEnumerable<ComplaintResponseDto>>(Complaints);
@@ -204,7 +255,7 @@ internal class FakeComplaintService : IComplaintService
         return Task.FromResult(dto);
     }
 
-    public Task<ComplaintResponseDto?> UpdateStatusAsync(int id, ComplaintStatus status)
+    public Task<ComplaintResponseDto?> UpdateStatusAsync(int id, ComplaintStatus status, string? comment = null, string? changedBy = null)
     {
         var item = Complaints.FirstOrDefault(c => c.Id == id);
         if (item != null) item.Status = status;
@@ -221,4 +272,7 @@ internal class FakeComplaintService : IComplaintService
         }
         return Task.FromResult(item);
     }
+
+    public Task<IEnumerable<StatusHistoryResponseDto>> GetStatusHistoryAsync(int complaintId) =>
+        Task.FromResult(Histories.Where(h => h.ComplaintId == complaintId));
 }

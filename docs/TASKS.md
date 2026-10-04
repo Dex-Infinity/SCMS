@@ -59,14 +59,14 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 - [x] Write seed data for testing
 
 **Seglah Emmanuel**
-- [ ] Design the Attachments, StatusHistory, and Notifications tables
-- [ ] Add indexing for common queries (complaints by student, status, department)
+- [x] Design the Attachments, StatusHistory, and Notifications tables
+- [x] Add indexing for common queries (complaints by student, status, department)
 - [ ] Add the ER diagram to `docs/er-diagram.png`
 
 **Collins Edumadze Egyir**
-- [ ] Define relationships between Complaints, Students, and Departments
+- [x] Define relationships between Complaints, Students, and Departments
 - [ ] Manage migrations as the schema evolves
-- [ ] Optimize queries needed for the reporting/analytics feature
+- [x] Optimize queries needed for the reporting/analytics feature
 
 ## DevOps Engineer
 

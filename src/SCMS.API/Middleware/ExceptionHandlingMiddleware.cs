@@ -31,11 +31,19 @@ public class ExceptionHandlingMiddleware
     // Map known exceptions to HTTP status codes and write a ProblemDetails body
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        if (context.Response.HasStarted)
+        {
+            _logger.LogWarning("The response has already started; cannot write ProblemDetails for {Method} {Path}",
+                context.Request.Method, context.Request.Path);
+            return;
+        }
+
         var statusCode = exception switch
         {
             KeyNotFoundException => StatusCodes.Status404NotFound,
             InvalidOperationException => StatusCodes.Status400BadRequest,
             ArgumentException => StatusCodes.Status400BadRequest,
+            BadHttpRequestException => StatusCodes.Status400BadRequest,
             UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
             _ => StatusCodes.Status500InternalServerError
         };

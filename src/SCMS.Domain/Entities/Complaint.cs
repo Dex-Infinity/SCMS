@@ -14,6 +14,7 @@ public class Complaint
     public int? AssignedToId { get; set; }
 
     public ComplaintStatus Status { get; set; } = ComplaintStatus.Pending;
+    public PriorityLevel Priority { get; set; } = PriorityLevel.Medium;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
@@ -21,4 +22,6 @@ public class Complaint
     public Student? Student { get; set; }
     public Department? Department { get; set; }
     public Admin? AssignedTo { get; set; }
+    public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
+    public ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
 }

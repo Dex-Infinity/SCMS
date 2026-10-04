@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Admin> Admins => Set<Admin>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
+    public DbSet<StatusHistory> StatusHistories => Set<StatusHistory>();
     public DbSet<UserSetting> UserSettings => Set<UserSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -74,6 +75,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).IsRequired();
 
+            // Indexes for common queries
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.StudentId, e.CreatedAt });
+            entity.HasIndex(e => new { e.DepartmentId, e.Status });
+
             entity.HasOne(e => e.Student)
                 .WithMany(s => s.Complaints)
                 .HasForeignKey(e => e.StudentId)
@@ -97,6 +104,44 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Message).IsRequired();
             entity.Property(e => e.UserId).IsRequired();
+
+            // Indexes for user notifications query performance
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.IsRead });
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // StatusHistory Configuration
+        modelBuilder.Entity<StatusHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Comment).HasMaxLength(1000);
+            entity.Property(e => e.ChangedBy).IsRequired().HasMaxLength(150);
+
+            entity.HasIndex(e => e.ComplaintId);
+            entity.HasIndex(e => e.ChangedAt);
+
+            entity.HasOne(e => e.Complaint)
+                .WithMany(c => c.StatusHistories)
+                .HasForeignKey(e => e.ComplaintId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Attachment Configuration
+        modelBuilder.Entity<Attachment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.StoredFileName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.ContentType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.UploadedBy).IsRequired().HasMaxLength(150);
+
+            entity.HasIndex(e => e.ComplaintId);
+
+            entity.HasOne(e => e.Complaint)
+                .WithMany(c => c.Attachments)
+                .HasForeignKey(e => e.ComplaintId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // UserSetting Configuration

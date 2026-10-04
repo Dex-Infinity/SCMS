@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using SCMS.API.DTOs;
+using SCMS.Domain.Entities;
+using SCMS.Infrastructure.Data;
 using SCMS.Infrastructure.Identity;
 
 namespace SCMS.API.Services;
@@ -17,11 +20,16 @@ public class AuthService : IAuthService
 
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITokenService _tokenService;
+    private readonly ApplicationDbContext _context;
 
-    public AuthService(UserManager<ApplicationUser> userManager, ITokenService tokenService)
+    public AuthService(
+        UserManager<ApplicationUser> userManager,
+        ITokenService tokenService,
+        ApplicationDbContext context)
     {
         _userManager = userManager;
         _tokenService = tokenService;
+        _context = context;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto)
@@ -49,8 +57,24 @@ public class AuthService : IAuthService
 
         await _userManager.AddToRoleAsync(user, StudentRole);
 
+        // Ensure matching Student domain entity exists for complaints & foreign keys
+        var student = await _context.Students.FirstOrDefaultAsync(s => s.Email == registerDto.Email);
+        if (student == null)
+        {
+            student = new Student
+            {
+                FullName = registerDto.FullName,
+                Email = registerDto.Email,
+                IndexNumber = !string.IsNullOrWhiteSpace(registerDto.IndexNumber) ? registerDto.IndexNumber : registerDto.UserName,
+                DepartmentId = registerDto.DepartmentId ?? 1,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Students.Add(student);
+            await _context.SaveChangesAsync();
+        }
+
         var roles = new List<string> { StudentRole };
-        var token = await _tokenService.CreateTokenAsync(user, roles);
+        var token = await _tokenService.CreateTokenAsync(user, roles, student.Id);
 
         return new AuthResponseDto
         {
@@ -59,6 +83,7 @@ public class AuthService : IAuthService
             Email = user.Email!,
             UserName = user.UserName!,
             FullName = user.FullName,
+            StudentId = student.Id,
             Roles = roles
         };
     }
@@ -78,7 +103,28 @@ public class AuthService : IAuthService
         }
 
         var roles = (await _userManager.GetRolesAsync(user)).ToList();
-        var token = await _tokenService.CreateTokenAsync(user, roles);
+
+        int? studentId = null;
+        if (roles.Contains(StudentRole))
+        {
+            var student = await _context.Students.FirstOrDefaultAsync(s => s.Email == user.Email);
+            if (student == null)
+            {
+                student = new Student
+                {
+                    FullName = user.FullName,
+                    Email = user.Email!,
+                    IndexNumber = user.UserName ?? user.Email!,
+                    DepartmentId = 1,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Students.Add(student);
+                await _context.SaveChangesAsync();
+            }
+            studentId = student.Id;
+        }
+
+        var token = await _tokenService.CreateTokenAsync(user, roles, studentId);
 
         return new AuthResponseDto
         {
@@ -87,6 +133,7 @@ public class AuthService : IAuthService
             Email = user.Email!,
             UserName = user.UserName!,
             FullName = user.FullName,
+            StudentId = studentId,
             Roles = roles
         };
     }

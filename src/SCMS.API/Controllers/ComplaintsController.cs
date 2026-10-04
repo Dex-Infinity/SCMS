@@ -111,10 +111,34 @@ public class ComplaintsController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var updated = await _complaintService.UpdateStatusAsync(id, dto.Status);
+        var changedBy = User.Identity?.Name ?? "Admin";
+        var updated = await _complaintService.UpdateStatusAsync(id, dto.Status, dto.Comment, changedBy);
         if (updated == null) return NotFound(new { message = $"Complaint with ID {id} was not found." });
 
         return Ok(updated);
+    }
+
+    // GET api/complaints/{id}/history - Get status audit history for a complaint (admins or complaint owner)
+    [HttpGet("{id:int}/history")]
+    [Authorize(Roles = "Admin,Student")]
+    [ProducesResponseType(typeof(IEnumerable<StatusHistoryResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetHistory(int id)
+    {
+        var complaint = await _complaintService.GetComplaintByIdAsync(id);
+        if (complaint == null) return NotFound(new { message = $"Complaint with ID {id} was not found." });
+
+        if (!User.IsInRole("Admin"))
+        {
+            if (!await IsComplaintOwnerAsync(complaint))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to view the history of this complaint." });
+            }
+        }
+
+        var history = await _complaintService.GetStatusHistoryAsync(id);
+        return Ok(history);
     }
 
     // PUT api/complaints/{id}/assign - Assign complaint to department/staff (admin only)
