@@ -24,6 +24,13 @@
             </p>
         }
 
+        @if (RegistrationDisabled)
+        {
+            <p class="mt-lg rounded-lg bg-surface-container-high px-md py-sm text-body-md text-on-surface-variant" role="status">
+                New account registration is temporarily unavailable.
+            </p>
+        }
+
         <form action="/auth/login" method="post" class="mt-xl flex flex-col gap-lg">
             <input type="hidden" name="returnUrl" value="@SafeReturnUrl" />
             <div class="flex flex-col gap-2">
@@ -36,9 +43,6 @@
             </div>
             <button class="btn btn-primary mt-sm w-full" type="submit">Sign in</button>
         </form>
-        <p class="mt-lg text-center text-body-md text-on-surface-variant">
-            Don't have an account? <a href="/signup" class="font-semibold text-primary hover:underline">Create account</a>
-        </p>
     </section>
 </main>
 
@@ -49,7 +53,11 @@
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string? ReturnUrl { get; set; }
 
+    [SupplyParameterFromQuery(Name = "registration")]
+    public string? RegistrationQuery { get; set; }
+
     private bool HasError => !string.IsNullOrWhiteSpace(ErrorQuery);
+    private bool RegistrationDisabled => RegistrationQuery == "disabled";
 
     private string SafeReturnUrl => !string.IsNullOrWhiteSpace(ReturnUrl) && ReturnUrl.StartsWith('/') && !ReturnUrl.StartsWith("//")
         ? ReturnUrl

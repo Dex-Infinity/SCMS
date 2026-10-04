@@ -160,86 +160,8 @@ app.MapPost("/account/login", async (HttpContext context, IHttpClientFactory cli
     return Results.Redirect(destination);
 }).DisableAntiforgery();
 
-app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory clients) =>
-{
-    var form = await context.Request.ReadFormAsync();
-    var email = form["Email"].ToString();
-    var registration = new ApiRegisterRequest(
-        email,
-        email,
-        form["FullName"].ToString(),
-        form["Password"].ToString());
-    HttpResponseMessage response;
-    try
-    {
-        response = await clients.CreateClient("SCMS.Api.Public").PostAsJsonAsync("api/auth/register", registration);
-    }
-    catch (Exception ex)
-    {
-        var connErr = Uri.EscapeDataString($"Unable to reach the server: {ex.Message}");
-        return Results.Redirect($"/signup?error=1&message={connErr}");
-    }
-
-    if (!response.IsSuccessStatusCode)
-    {
-        string? errorMessage = null;
-        try
-        {
-            var errorObj = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-            if (errorObj.TryGetProperty("message", out var msgProp) && msgProp.ValueKind == System.Text.Json.JsonValueKind.String)
-            {
-                errorMessage = msgProp.GetString();
-            }
-            else if (errorObj.TryGetProperty("errors", out var errorsProp) && errorsProp.ValueKind == System.Text.Json.JsonValueKind.Object)
-            {
-                var list = new List<string>();
-                foreach (var prop in errorsProp.EnumerateObject())
-                {
-                    if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
-                    {
-                        foreach (var item in prop.Value.EnumerateArray())
-                        {
-                            if (item.ValueKind == System.Text.Json.JsonValueKind.String)
-                            {
-                                list.Add(item.GetString()!);
-                            }
-                        }
-                    }
-                }
-                if (list.Count > 0) errorMessage = string.Join(" ", list);
-            }
-        }
-        catch { }
-
-        var redirectUrl = string.IsNullOrWhiteSpace(errorMessage)
-            ? "/signup?error=1"
-            : $"/signup?error=1&message={Uri.EscapeDataString(errorMessage)}";
-
-        return Results.Redirect(redirectUrl);
-    }
-
-    var authenticated = await response.Content.ReadFromJsonAsync<ApiAuthResponse>();
-    if (authenticated is null || string.IsNullOrWhiteSpace(authenticated.Token))
-    {
-        return Results.Redirect("/signup?error=1");
-    }
-
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.Name, authenticated.FullName),
-        new(ClaimTypes.Email, authenticated.Email),
-        new("access_token", authenticated.Token),
-        new(ApiClient.TokenClaim, authenticated.Token)
-    };
-    claims.AddRange(authenticated.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
-
-    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-    var principal = new ClaimsPrincipal(identity);
-    await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
-        new AuthenticationProperties { ExpiresUtc = authenticated.ExpiresAt });
-
-    return Results.Redirect(AppRoutes.Dashboard);
-}).DisableAntiforgery();
+app.MapPost("/auth/register", () => Results.Redirect("/login?registration=disabled"))
+    .DisableAntiforgery();
 
 app.MapPost("/auth/logout", async (HttpContext context) =>
 {

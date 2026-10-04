@@ -19,27 +19,13 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
-    // POST api/auth/register - Register a new user (student)
+    // POST api/auth/register - Registration is temporarily unavailable.
     [HttpPost("register")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+    [ProducesResponseType(StatusCodes.Status410Gone)]
+    public IActionResult Register()
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        try
-        {
-            var result = await _authService.RegisterAsync(registerDto);
-            return StatusCode(StatusCodes.Status201Created, result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        return StatusCode(StatusCodes.Status410Gone, new { message = "Registration is temporarily unavailable." });
     }
 
     // POST api/auth/login - Authenticate a user and return a JWT token
