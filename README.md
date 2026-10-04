@@ -4,11 +4,24 @@ A web-based platform for submitting, tracking, and resolving student complaints 
 
 ## Tech Stack
 
-- **Backend:** ASP.NET Core Web API
-- **Frontend:** Blazor Web Application
-- **ORM:** Entity Framework Core
-- **Database:** SQL Server
-- **Auth:** ASP.NET Identity
+| Layer | Technology |
+|-------|-----------|
+| **Backend API** | ASP.NET Core 10 Web API |
+| **Frontend** | Blazor Web Application (.NET 10) |
+| **ORM** | Entity Framework Core 10 |
+| **Database** | SQL Server 2022 |
+| **Auth** | ASP.NET Identity + JWT Bearer |
+| **Containerization** | Docker + Docker Compose |
+
+## Key Features
+
+1. **Complaint Submission** — students submit complaints with supporting document attachments
+2. **Complaint Tracking** — real-time status updates with a progress stepper (Submitted → Under Review → Assigned → Resolved)
+3. **Complaint Management** — admins review, assign to departments, and resolve or reject complaints
+4. **Status History** — full audit trail of every complaint status transition
+5. **Notifications** — in-app alerts triggered on every status change
+6. **Reports & Analytics** — complaint statistics by status and department, resolution time metrics
+7. **Attachments** — file upload/download support (PDF, JPG, PNG, DOC, DOCX)
 
 ## Folder Structure
 
@@ -20,40 +33,52 @@ SCMS/
 │
 ├── src/
 │   ├── SCMS.API/                   # ASP.NET Core Web API (Backend)
-│   │   ├── Controllers/
-│   │   ├── Services/
-│   │   ├── Repositories/
-│   │   ├── Middleware/
-│   │   ├── DTOs/
+│   │   ├── Controllers/            # AuthController, ComplaintsController, etc.
+│   │   ├── Services/               # Business logic (Auth, Complaint, Analytics, etc.)
+│   │   ├── Repositories/           # Data access (Complaint, Analytics, Attachment)
+│   │   ├── Middleware/             # Exception handling middleware
+│   │   ├── DTOs/                   # Request/Response data transfer objects
 │   │   ├── Program.cs
-│   │   └── appsettings.json
+│   │   ├── appsettings.json        # Base config (all environments)
+│   │   ├── appsettings.Development.json
+│   │   └── appsettings.Production.json
 │   │
 │   ├── SCMS.Web/                   # Blazor Frontend
 │   │   ├── Pages/
-│   │   │   ├── Student/
-│   │   │   └── Admin/
+│   │   │   ├── Student/            # SubmitComplaint, TrackComplaints, ComplaintDetails
+│   │   │   └── Admin/              # AdminDashboard, AnalyticsDashboard
 │   │   ├── Shared/                 # Layout, NavMenu, shared components
-│   │   ├── Services/                # API client services
+│   │   ├── Services/               # API client services
 │   │   └── wwwroot/
 │   │
 │   ├── SCMS.Domain/                # Entities & core business models
-│   │   ├── Entities/
-│   │   └── Enums/
+│   │   ├── Entities/               # Complaint, Student, Department, Admin,
+│   │   │                           # Attachment, Notification, StatusHistory, UserSetting
+│   │   └── Enums/                  # ComplaintStatus
 │   │
 │   └── SCMS.Infrastructure/        # EF Core, migrations, identity
 │       ├── Data/
-│       │   ├── ApplicationDbContext.cs
-│       │   └── Migrations/
-│       └── Identity/
+│       │   └── ApplicationDbContext.cs
+│       ├── Migrations/             # EF Core migration history
+│       └── Identity/               # ApplicationUser, ApplicationRole, DbInitializer
 │
 ├── tests/
-│   ├── SCMS.API.Tests/              # Backend unit/integration tests
-│   └── SCMS.Web.Tests/              # Frontend component tests
+│   ├── SCMS.API.Tests/             # Backend unit/integration tests
+│   └── SCMS.Web.Tests/             # Frontend component tests
 │
 ├── docs/
-│   ├── wireframes/                  # UI/UX design exports
-│   └── er-diagram.png               # Database schema diagram
+│   ├── wireframes/                 # UI/UX design exports
+│   │   ├── user-flows/             # student-user-flow.png, admin-user-flow.png
+│   │   ├── student-dashboard.png
+│   │   ├── reporting-dashboard.png
+│   │   └── admin-dashboard/
+│   ├── er-diagram.png              # Full database ER diagram
+│   ├── TASKS.md                    # Team task assignments & status
+│   ├── DEPLOYMENT.md               # Deployment & runbook guide
+│   ├── DEVELOPMENT_GUIDE.md        # Developer onboarding guide
+│   └── ENVIRONMENT_CONFIG.md       # Secrets & env config guide
 │
+├── docker-compose.yml
 ├── .gitignore
 ├── CONTRIBUTING.md
 └── README.md
@@ -62,15 +87,14 @@ SCMS/
 ## Getting Started
 
 ### Prerequisites
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) *(for the Docker option)*
-- Visual Studio 2022 / VS Code *(for the manual option)*
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) *(recommended — no other installs needed)*
+- **OR** [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) + SQL Server (for manual run)
 
 ---
 
 ### ▶ Option 1: Run with Docker (Recommended — One Command)
 
-This is the easiest way to get everything running. Docker will spin up the **API**, **Frontend**, and **SQL Server database** automatically.
+Docker spins up the **API**, **Blazor frontend**, and **SQL Server** automatically with health-checked startup ordering.
 
 ```bash
 # Clone the repo
@@ -78,86 +102,98 @@ git clone https://github.com/Dex-Infinity/SCMS.git
 cd SCMS
 
 # Build and start all services
-docker-compose up -d --build
+docker compose up --build
 ```
 
-Once running, open your browser and visit:
+> First boot takes ~60–90 seconds while SQL Server initialises and the API runs migrations.
+
+Once running, open your browser:
 
 | Service | URL |
-|---|---|
-| 🌐 **Frontend (Blazor Web)** | http://localhost:5001 |
-| ⚙️ **Backend API (Swagger UI)** | http://localhost:5000/swagger |
-| 🗄️ **SQL Server** | `localhost,1433` (SA password: `SuperSecretPassword123!`) |
+|---------|-----|
+| 🌐 **Web App (Blazor)** | http://localhost:8081 |
+| ⚙️ **API (Swagger UI)** | http://localhost:8080/swagger |
+| 🗄️ **SQL Server** | `localhost,1433` · user: `sa` · password: `SCMS@SqlServer2026!` |
 
 To stop all services:
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ---
 
 ### ▶ Option 2: Run Manually with .NET CLI
 
-Use this option if you prefer to run each service individually for development.
-
-**1. Clone the repo and restore dependencies:**
+**1. Clone and restore:**
 ```bash
 git clone https://github.com/Dex-Infinity/SCMS.git
 cd SCMS
 dotnet restore
 ```
 
-**2. Apply database migrations** *(requires a local SQL Server or LocalDB instance)*:
+**2. Apply database migrations** *(requires SQL Server or LocalDB)*:
 ```bash
-cd src/SCMS.Infrastructure
-dotnet ef database update
+dotnet ef database update --project src/SCMS.Infrastructure --startup-project src/SCMS.API
 ```
 
-> If you don't have SQL Server, skip this step. The API will automatically fall back to an **in-memory database**.
+> If you don't have SQL Server locally, skip this step. The API will fall back to an **in-memory database** automatically.
 
-**3. Run the Backend API** *(in Terminal 1)*:
+**3. Run the API** *(Terminal 1)*:
 ```bash
 cd src/SCMS.API
 dotnet run
 ```
-The API will be available at: **http://localhost:5000**
-Swagger UI (API docs & testing): **http://localhost:5000/swagger**
+API: **http://localhost:5000** · Swagger: **http://localhost:5000/swagger**
 
-**4. Run the Frontend** *(in a new Terminal 2)*:
+**4. Run the Frontend** *(Terminal 2)*:
 ```bash
 cd src/SCMS.Web
 dotnet run
 ```
-The web app will be available at: **http://localhost:5001**
+Web app: **http://localhost:5001**
 
-> **Note:** The root URL `http://localhost:5000` will return a 404 — this is expected. Always use `/swagger` for the backend API.
+---
+
+## API Reference
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/auth/register` | Public | Register new student |
+| `POST` | `/api/auth/login` | Public | Login, returns JWT token |
+| `GET` | `/api/complaints` | JWT | Get all complaints |
+| `POST` | `/api/complaints` | JWT | Submit new complaint |
+| `GET` | `/api/complaints/{id}` | JWT | Get complaint by ID |
+| `PUT` | `/api/complaints/{id}/status` | JWT | Update complaint status |
+| `PUT` | `/api/complaints/{id}/assign` | JWT | Assign to department/admin |
+| `GET` | `/api/reports/summary` | JWT | Analytics summary |
+| `GET` | `/api/notifications` | JWT | Get user notifications |
+| `POST` | `/api/attachments` | JWT | Upload file attachment |
+
+Full interactive docs available at **http://localhost:8080/swagger**.
 
 ## Branching Strategy
 
 - `main` — stable, deployable code only
-- `dev` — integration branch for completed features
-- `feature/<name>` — individual task branches, branched off `dev`
+- `feat/<name>` — individual task/feature branches
 
-All changes go through a pull request into `dev`, with at least one review before merging. See `CONTRIBUTING.md` for details.
+All changes go through a Pull Request into `main` with at least one review. See [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
+
+## Database Schema
+
+See [docs/er-diagram.png](./docs/er-diagram.png) for the full ER diagram.
+
+**Core tables:** `Students`, `Departments`, `Admins`, `Complaints`, `Attachments`, `StatusHistory`, `Notifications`, `UserSettings`, `AspNetUsers` (Identity)
 
 ## Team
 
 | Role | Members |
-|---|---|
+|------|---------|
 | Project Lead | Nana Kofi Agyin |
 | Backend Developer | Virtus Dakura, Amartey Felix Laryea |
 | Frontend Developer | Irene Darah-Mensah, Elikplim Yevu |
 | UI/UX Designer | Roselyn Francis, Quartey Obed Nii Kpakpa |
 | Database Engineer | Jessica Zunuo Puozaa, Seglah Emmanuel, Collins Edumadze Egyir |
 | DevOps Engineer | Keren Asabea Acquaah, Rushdan Delimwine Antiku |
-
-## Key Features
-
-1. **Complaint Submission** — students submit complaints with supporting document attachments
-2. **Complaint Tracking** — real-time status updates for students
-3. **Complaint Management** — admins review, assign, update, and resolve complaints
-4. **Notifications** — status-change alerts for users
-5. **Reports & Analytics** — complaint statistics and performance dashboards for management
 
 ## License
 

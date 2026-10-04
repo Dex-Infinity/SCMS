@@ -1,12 +1,12 @@
 # SCMS Developer & Team Onboarding Guide
 
-Welcome to the **Student Complaint Management System (SCMS)** repository! This comprehensive guide provides step-by-step instructions, installation prerequisites, architecture flow, component connectivity, and role-specific workflows.
+Welcome to the **Student Complaint Management System (SCMS)** repository! This guide provides step-by-step setup instructions, architecture overview, and role-specific workflows.
 
 ---
 
 ## 1. System Architecture & Component Connectivity
 
-The SCMS solution is built using a clean, layered architecture with .NET 8. Below is how the projects connect and interact with each other:
+The SCMS solution is built on **.NET 10** using a clean, layered architecture:
 
 ```mermaid
 graph TD
@@ -14,65 +14,48 @@ graph TD
     B -->|References| C[SCMS.Domain - Entities & Enums]
     B -->|References| D[SCMS.Infrastructure - EF Core & Identity]
     D -->|References| C
-    D -->|EF Core SQL Client| E[(SQL Server Database)]
+    D -->|EF Core SQL Client| E[(SQL Server 2022)]
     F[SCMS.API.Tests] -->|Tests| B
     G[SCMS.Web.Tests] -->|Tests| A
 ```
 
-### Layer Responsibilities:
+### Layer Responsibilities
 
-1. **`SCMS.Domain` (Core Business Layer)**
-   - Contains pure C# domain entities (e.g., `Complaint`, `Student`, `Department`, `Notification`, `Attachment`) and Enums (e.g., `ComplaintStatus`, `PriorityLevel`).
-   - Has zero dependencies on databases or UI frameworks.
-
-2. **`SCMS.Infrastructure` (Data & Identity Layer)**
-   - References `SCMS.Domain`.
-   - Contains `ApplicationDbContext` (EF Core), database configurations, ASP.NET Core Identity user/role definitions, and database migrations.
-
-3. **`SCMS.API` (Backend Service Layer)**
-   - References `SCMS.Domain` and `SCMS.Infrastructure`.
-   - Exposes RESTful HTTP API endpoints (`Controllers/`).
-   - Houses business logic services (`Services/`), data access repositories (`Repositories/`), Data Transfer Objects (`DTOs/`), authentication middleware, and Swagger/OpenAPI documentation.
-
-4. **`SCMS.Web` (Frontend UI Layer)**
-   - Blazor Web Application.
-   - Communicates with `SCMS.API` via HTTP (`HttpClient` client services in `Services/`).
-   - Contains Blazor Pages (`Pages/Student/`, `Pages/Admin/`), layout navigation (`Shared/`), and static assets (`wwwroot/`).
-
-5. **`tests/` (Test Projects)**
-   - `SCMS.API.Tests`: xUnit tests for controllers and business services.
-   - `SCMS.Web.Tests`: xUnit tests for Blazor UI components and services.
+| Layer | Project | Responsibility |
+|-------|---------|---------------|
+| **Domain** | `SCMS.Domain` | Pure C# entities (`Complaint`, `Student`, `Department`, `Admin`, `Attachment`, `Notification`, `StatusHistory`, `UserSetting`) and enums (`ComplaintStatus`). Zero dependencies. |
+| **Infrastructure** | `SCMS.Infrastructure` | `ApplicationDbContext` (EF Core), database configurations, indexes, FK relationships, migrations, ASP.NET Identity (`ApplicationUser`, `ApplicationRole`), and `DbInitializer` for seeding. |
+| **API** | `SCMS.API` | RESTful HTTP endpoints (`Controllers/`), business logic (`Services/`), data access (`Repositories/`), DTOs, JWT auth middleware, Swagger/OpenAPI. |
+| **Web** | `SCMS.Web` | Blazor pages for students (`SubmitComplaint`, `TrackComplaints`, `ComplaintDetails`) and admins (`AdminDashboard`, `AnalyticsDashboard`). Communicates with API via `HttpClient`. |
+| **Tests** | `tests/` | xUnit tests for API controllers/services and Blazor components. |
 
 ---
 
 ## 2. Prerequisites & What to Install
 
-Every developer working on this project needs the following tools installed on their machine:
+### Option A — Docker (Recommended, no local installs needed)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-### Required Installations:
-1. **.NET 8.0 SDK** (Version 8.0.x or higher)
-   - Download: [https://dotnet.microsoft.com/download/dotnet/8.0](https://dotnet.microsoft.com/download/dotnet/8.0)
-   - Verify in terminal: `dotnet --version`
+### Option B — Manual / Local Development
+1. **.NET 10 SDK**
+   - Download: https://dotnet.microsoft.com/download/dotnet/10.0
+   - Verify: `dotnet --version`
 
-2. **Database Engine (SQL Server)**
-   - **Windows**: SQL Server Express or LocalDB (comes with Visual Studio).
-   - **Linux / macOS**: SQL Server Docker container (`mcr.microsoft.com/mssql/server:2022-latest`) or Azure SQL Edge.
+2. **SQL Server** (one of):
+   - Windows: SQL Server Express or LocalDB (ships with Visual Studio)
+   - Any OS: `docker run -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD=... -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest`
 
 3. **EF Core CLI Tools**
-   - Install globally via terminal:
-     ```bash
-     dotnet tool install --global dotnet-ef
-     ```
-   - Verify in terminal: `dotnet ef`
+   ```bash
+   dotnet tool install --global dotnet-ef
+   dotnet ef --version   # verify
+   ```
 
-4. **IDE / Code Editor**
-   - **Visual Studio 2022** (v17.8+ with *.NET desktop development* and *ASP.NET and web development* workloads)
-   - **OR Visual Studio Code** with extensions:
-     - *C# Dev Kit*
-     - *GitLens*
+4. **IDE**
+   - Visual Studio 2022 (v17.8+) with *ASP.NET and web development* workload
+   - **OR** VS Code with *C# Dev Kit* extension
 
-5. **Git**
-   - Verify in terminal: `git --version`
+5. **Git** — verify: `git --version`
 
 ---
 
@@ -84,213 +67,205 @@ git clone https://github.com/Dex-Infinity/SCMS.git
 cd SCMS
 ```
 
-### Step 2: Branching Rules & Workflow
-- **`main`**: Production code only. **Do not push directly to `main`.**
-- **`dev`**: Integration branch for completed features.
-- **`feature/<your-task-name>`**: Create a new feature branch off `dev` for every assigned task.
+### Step 2: Branching Rules
 
-#### Workflow Steps for Team Members:
+| Branch | Purpose |
+|--------|---------|
+| `main` | Production-ready. **Never push directly.** |
+| `feat/<task-name>` | One branch per task, branched off `main` |
+
 ```bash
-# 1. Switch to dev branch and pull latest changes
-git checkout dev
-git pull origin dev
+# Pull latest main
+git checkout main
+git pull origin main
 
-# 2. Create your task branch
-git checkout -b feature/complaint-submission-api
+# Create your feature branch
+git checkout -b feat/my-task-name
 
-# 3. Make your changes and commit in small, descriptive chunks
+# Work, commit in small chunks
 git add .
-git commit -m "feat: add complaint submission controller and DTO"
+git commit -m "feat: describe what you did"
 
-# 4. Push your feature branch to GitHub
-git push origin feature/complaint-submission-api
+# Push and open a PR into main
+git push origin feat/my-task-name
+```
 
-# 5. Open a Pull Request (PR) into dev on GitHub and request a review from a teammate.
+### Step 3: Run the Stack
+```bash
+docker compose up --build
+```
+
+| URL | Description |
+|-----|-------------|
+| http://localhost:8080/swagger | API + interactive docs |
+| http://localhost:8081 | Blazor Web App |
+
+---
+
+## 4. Environment Configuration
+
+Secrets and environment-specific settings are managed via `appsettings.{Environment}.json` files and environment variables.
+
+See **[ENVIRONMENT_CONFIG.md](./ENVIRONMENT_CONFIG.md)** for the full guide.
+
+**Quick summary for local dev:**
+```bash
+cd src/SCMS.API
+dotnet user-secrets set "Jwt:Key" "your-local-dev-secret"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=...your-local-db..."
 ```
 
 ---
 
-## 4. Role-Specific Step-by-Step Task Guides
+## 5. Database Migrations
 
-Below are step-by-step instructions for each engineering role to complete their tasks outlined in `docs/TASKS.md`.
+Migrations apply **automatically on API startup** via `MigrateAsync()`.
 
----
+To create a new migration after modifying entities or `ApplicationDbContext`:
+```bash
+dotnet ef migrations add <MigrationName> \
+  --project src/SCMS.Infrastructure \
+  --startup-project src/SCMS.API
+```
 
-### A. Database Engineers (Jessica, Seglah, Collins)
+To apply manually:
+```bash
+dotnet ef database update \
+  --project src/SCMS.Infrastructure \
+  --startup-project src/SCMS.API
+```
 
-#### Task Checklist:
-1. **Define Domain Entities (`SCMS.Domain`)**:
-   - Create entity classes inside `src/SCMS.Domain/Entities/`:
-     - `Student.cs`, `Complaint.cs`, `Department.cs`, `Attachment.cs`, `Notification.cs`, `StatusHistory.cs`.
-   - Create enums in `src/SCMS.Domain/Enums/`:
-     - `ComplaintStatus.cs` (`Pending`, `InReview`, `Assigned`, `Resolved`, `Rejected`).
-     - `PriorityLevel.cs`.
-
-2. **Configure DbContext (`SCMS.Infrastructure`)**:
-   - Create `src/SCMS.Infrastructure/Data/ApplicationDbContext.cs`:
-     ```csharp
-     using Microsoft.EntityFrameworkCore;
-     using SCMS.Domain.Entities;
-
-     namespace SCMS.Infrastructure.Data
-     {
-         public class ApplicationDbContext : DbContext
-         {
-             public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
-
-             public DbSet<Student> Students { get; set; }
-             public DbSet<Complaint> Complaints { get; set; }
-             public DbSet<Department> Departments { get; set; }
-             public DbSet<Attachment> Attachments { get; set; }
-             public DbSet<Notification> Notifications { get; set; }
-         }
-     }
-     ```
-
-3. **Generate EF Core Migrations**:
-   - Run migration command from project root:
-     ```bash
-     dotnet ef migrations add InitialCreate --project src/SCMS.Infrastructure --startup-project src/SCMS.API
-     ```
-
-4. **Update Database**:
-   - Apply migrations to create database tables:
-     ```bash
-     dotnet ef database update --project src/SCMS.Infrastructure --startup-project src/SCMS.API
-     ```
-
-5. **ER Diagram**:
-   - Export your completed database ER diagram image to `docs/er-diagram.png`.
+**Current migrations:**
+| Migration | Description |
+|-----------|-------------|
+| `20260831034022_AddCoreDatabaseSchema` | Initial schema — all core tables |
+| `20261004034405_AddStatusHistoryAndIndexes` | StatusHistory table + performance indexes |
 
 ---
 
-### B. Backend Developers (Virtus, Amartey)
+## 6. Role-Specific Guides
 
-#### Task Checklist:
-1. **Set Up Project Folders (`src/SCMS.API/`)**:
-   - Create folders: `Controllers/`, `Services/`, `Repositories/`, `DTOs/`, `Middleware/`.
+### A. Database Engineers (Jessica, Seglah, Collins) ✅ All complete
 
-2. **Configure `Program.cs` in `SCMS.API`**:
-   - Register Swagger, Controllers, DbContext connection string, and Dependency Injection:
-     ```csharp
-     using Microsoft.EntityFrameworkCore;
-     using SCMS.Infrastructure.Data;
+All entities, relationships, indexes, and migrations are implemented. Key files:
 
-     var builder = WebApplication.CreateBuilder(args);
+| File | Purpose |
+|------|---------|
+| [`SCMS.Domain/Entities/`](../src/SCMS.Domain/Entities/) | All domain entities |
+| [`SCMS.Infrastructure/Data/ApplicationDbContext.cs`](../src/SCMS.Infrastructure/Data/ApplicationDbContext.cs) | EF Core config — relationships, indexes, seed data |
+| [`SCMS.Infrastructure/Migrations/`](../src/SCMS.Infrastructure/Migrations/) | Migration history |
+| [`docs/er-diagram.png`](./er-diagram.png) | Full ER diagram |
 
-     // Add Services
-     builder.Services.AddControllers();
-     builder.Services.AddEndpointsApiExplorer();
-     builder.Services.AddSwaggerGen();
+**Indexes on `Complaints`:**
+- `StudentId` — complaints by student
+- `Status` — complaints by status
+- `DepartmentId` — complaints by department
+- `(StudentId, Status)` — composite for filtered student queries
 
-     // Register DbContext
-     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+---
 
-     var app = builder.Build();
+### B. Backend Developers (Virtus, Amartey) ✅ All complete
 
-     if (app.Environment.IsDevelopment())
-     {
-         app.UseSwagger();
-         app.UseSwaggerUI();
-     }
+All API endpoints, services, auth, and middleware are implemented.
 
-     app.UseHttpsRedirection();
-     app.UseAuthorization();
-     app.MapControllers();
+**Key endpoints:**
 
-     app.Run();
-     ```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/auth/register` | Register student |
+| `POST` | `/api/auth/login` | Login → JWT token |
+| `GET/POST` | `/api/complaints` | List / create complaints |
+| `GET/PUT` | `/api/complaints/{id}` | Get / update status |
+| `PUT` | `/api/complaints/{id}/assign` | Assign to dept/admin |
+| `GET` | `/api/reports/summary` | Analytics |
+| `GET` | `/api/notifications` | User notifications |
 
-3. **Create `appsettings.json`**:
-   - Add database connection string:
-     ```json
-     {
-       "ConnectionStrings": {
-         "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=SCMSDb;Trusted_Connection=True;MultipleActiveResultSets=true"
-       }
-     }
-     ```
+**To test locally:**
+```bash
+# Start API
+cd src/SCMS.API && dotnet run
 
-4. **Build DTOs & Controllers**:
-   - Create `DTOs/ComplaintCreateDto.cs`, `DTOs/ComplaintResponseDto.cs`.
-   - Create `Controllers/ComplaintsController.cs` with HTTP methods: `POST /api/complaints`, `GET /api/complaints`, `GET /api/complaints/{id}`, `PUT /api/complaints/{id}/status`.
-   - Implement `Services/NotificationService.cs` for automated alerts.
-   - Implement ASP.NET Identity authentication endpoints (Register / Login / JWT).
+# Open Swagger
+start http://localhost:5000/swagger
+```
 
 ---
 
 ### C. Frontend Developers (Irene, Elikplim)
 
-#### Task Checklist:
-1. **Set Up Project Folders (`src/SCMS.Web/`)**:
-   - Create folders: `Pages/Student/`, `Pages/Admin/`, `Shared/`, `Services/`, `wwwroot/`.
+**Pages to build / wire up:**
 
-2. **Configure `Program.cs` in `SCMS.Web`**:
-   - Register `HttpClient` pointing to backend API:
-     ```csharp
-     var builder = WebApplication.CreateBuilder(args);
+| Page | Path | Status |
+|------|------|--------|
+| Submit Complaint | `Pages/Student/SubmitComplaint` | ✅ Built |
+| Track Complaints | `Pages/Student/TrackComplaints` | ✅ Built |
+| Complaint Details | `Pages/Student/ComplaintDetails` | ✅ Built |
+| Admin Dashboard | `Pages/Admin/AdminDashboard` | 🔲 Pending |
+| Analytics Dashboard | `Pages/Admin/AnalyticsDashboard` | ✅ Built |
+| Notifications UI | `Shared/` | 🔲 Pending |
+| Profile Page | `Pages/Profile` | 🔲 Pending |
+| Settings Page | `Pages/Settings` | 🔲 Pending |
 
-     builder.Services.AddRazorPages();
-     builder.Services.AddServerSideBlazor();
-     builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7001/") });
-
-     var app = builder.Build();
-     ...
-     ```
-
-3. **Build API Client Services**:
-   - Create `Services/ComplaintApiClient.cs` to fetch and send JSON data to `SCMS.API`.
-
-4. **Build Blazor Pages & UI Components**:
-   - `Shared/NavMenu.razor` & `Shared/MainLayout.razor`.
-   - `Pages/Student/SubmitComplaint.razor` (Student complaint submission form with file upload).
-   - `Pages/Student/TrackComplaints.razor` (List + real-time status updates).
-   - `Pages/Admin/AdminDashboard.razor` (Queue, filter, assignment, and status resolution).
-   - `Pages/Admin/AnalyticsDashboard.razor` (Charts & reports).
+**Wire pages to API:** All pages must use the `HttpClient` services in `Services/` to call the API at `http://api:8080` (Docker) or `http://localhost:5000` (local).
 
 ---
 
-### D. UI/UX Designers (Roselyn, Quartey)
+### D. UI/UX Designers (Roselyn, Quartey) ✅ All complete
 
-#### Task Checklist:
-1. **Map User Flows**:
-   - Define student complaint submission & tracking steps.
-   - Define admin complaint review, assignment, and resolution flow.
-2. **Wireframe Pages**:
-   - Design low/high-fidelity wireframes for Student Portal & Admin Dashboard.
-3. **Build Design System & Exports**:
-   - Define color palette, typography, badges (`Pending` [yellow], `Resolved` [green], `Rejected` [red]).
-   - Store design asset exports in `docs/wireframes/`.
+All wireframes and user flows are in [`docs/wireframes/`](./wireframes/):
 
----
-
-### E. DevOps Engineers (Keren, Rushdan)
-
-#### Task Checklist:
-1. **Environment Configuration**:
-   - Manage connection strings, secrets, and environment settings across `Development` and `Production`.
-2. **CI Pipeline Maintenance**:
-   - Maintain `.github/workflows/ci.yml` for automated builds and unit test verification on PRs.
-3. **Deployment Runbook**:
-   - Set up local/cloud database instance (SQL Server).
-   - Document deployment steps for hosting `SCMS.API` and `SCMS.Web`.
+| Deliverable | File |
+|-------------|------|
+| Student user flow | `wireframes/user-flows/student-user-flow.png` |
+| Admin user flow | `wireframes/user-flows/admin-user-flow.png` |
+| Student dashboard wireframe | `wireframes/student-dashboard.png` |
+| Admin dashboard wireframe | `wireframes/admin-dashboard/admin-dashboard.png` |
+| Reporting dashboard wireframe | `wireframes/reporting-dashboard.png` |
+| Design system | `wireframes/` exports |
 
 ---
 
-## 5. Verification & Testing
+### E. DevOps Engineers (Keren, Rushdan) ✅ All complete
 
-Before submitting a PR, verify your code locally:
+| Deliverable | File |
+|-------------|------|
+| Docker Compose with healthchecks | [`docker-compose.yml`](../docker-compose.yml) |
+| Environment config guide | [`docs/ENVIRONMENT_CONFIG.md`](./ENVIRONMENT_CONFIG.md) |
+| Dev appsettings | [`src/SCMS.API/appsettings.Development.json`](../src/SCMS.API/appsettings.Development.json) |
+| Production appsettings | [`src/SCMS.API/appsettings.Production.json`](../src/SCMS.API/appsettings.Production.json) |
+| Deployment runbook | [`docs/DEPLOYMENT.md`](./DEPLOYMENT.md) |
+
+---
+
+## 7. Verification & Testing
+
+Before submitting a PR:
 
 ```bash
 # 1. Restore dependencies
 dotnet restore
 
 # 2. Build entire solution
-dotnet build --configuration Release
+dotnet build
 
 # 3. Run all unit tests
 dotnet test
+
+# 4. Verify API is alive (if running)
+Invoke-WebRequest http://localhost:8080/swagger/v1/swagger.json
 ```
 
-If all builds and tests pass cleanly, your feature is ready for Pull Request review!
+All builds and tests must pass cleanly before requesting a PR review.
+
+---
+
+## 8. Useful References
+
+| Resource | Link |
+|----------|------|
+| ER Diagram | [docs/er-diagram.png](./er-diagram.png) |
+| Task Assignments | [docs/TASKS.md](./TASKS.md) |
+| Deployment Guide | [docs/DEPLOYMENT.md](./DEPLOYMENT.md) |
+| Environment Config | [docs/ENVIRONMENT_CONFIG.md](./ENVIRONMENT_CONFIG.md) |
+| Contributing Guide | [CONTRIBUTING.md](../CONTRIBUTING.md) |
+| Swagger UI (live) | http://localhost:8080/swagger |
