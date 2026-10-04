@@ -14,36 +14,46 @@
     <SearchBar OnSearch="OnSearch" />
 
     <div class="flex items-center gap-1 sm:gap-4 md:ml-auto">
-        <a href="@AppRoutes.Notifications" class="icon-btn" aria-label="@NotificationsLabel">
-            <Icon Name="notifications" />
-            @if (UnreadNotifications > 0)
-            {
-                <span class="absolute top-2 right-2 size-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest" aria-hidden="true"></span>
-            }
-        </a>
+        @if (IsAuthenticated)
+        {
+            <a href="@AppRoutes.Notifications" class="icon-btn" aria-label="@NotificationsLabel">
+                <Icon Name="notifications" />
+                @if (UnreadNotifications > 0)
+                {
+                    <span class="absolute top-2 right-2 size-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest" aria-hidden="true"></span>
+                }
+            </a>
 
-        <a href="@AppRoutes.Settings" class="icon-btn hidden sm:inline-flex" aria-label="Settings">
-            <Icon Name="settings" />
-        </a>
+            <a href="@AppRoutes.Settings" class="icon-btn hidden sm:inline-flex" aria-label="Settings">
+                <Icon Name="settings" />
+            </a>
 
-        <a href="@AppRoutes.Profile"
-           class="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-container"
-           aria-label="Profile: @UserName">
-            @if (!string.IsNullOrWhiteSpace(AvatarUrl))
-            {
-                <img src="@AvatarUrl" alt="" class="size-8 rounded-full border border-surface-variant object-cover" />
-            }
-            else
-            {
-                <span class="flex size-8 items-center justify-center rounded-full border border-surface-variant bg-primary-fixed text-caption font-semibold text-on-primary-fixed-variant" aria-hidden="true">@Initials</span>
-            }
-        </a>
+            <a href="@AppRoutes.Profile"
+               class="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-container"
+               aria-label="Profile: @UserName">
+                @if (!string.IsNullOrWhiteSpace(AvatarUrl))
+                {
+                    <img src="@AvatarUrl" alt="" class="size-8 rounded-full border border-surface-variant object-cover" />
+                }
+                else
+                {
+                    <span class="flex size-8 items-center justify-center rounded-full border border-surface-variant bg-primary-fixed text-caption font-semibold text-on-primary-fixed-variant" aria-hidden="true">@Initials</span>
+                }
+            </a>
+        }
+        else
+        {
+            <a href="/login" class="btn btn-primary">Sign in</a>
+        }
     </div>
 </header>
 
 @code {
     [Parameter, EditorRequired]
     public string UserName { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IsAuthenticated { get; set; }
 
     /// <summary>Optional photo. Falls back to the user's initials.</summary>
     [Parameter]

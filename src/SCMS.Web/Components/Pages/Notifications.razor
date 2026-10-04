@@ -1,0 +1,125 @@
+@page "/notifications"
+@attribute [Authorize]
+@inject ScmsApiClient Api
+@inject ILogger<Notifications> Logger
+
+<PageTitle>Notifications - SCMS Portal</PageTitle>
+
+<div class="mx-auto flex w-full max-w-[900px] flex-col gap-xl">
+    <header class="flex flex-col justify-between gap-md sm:flex-row sm:items-end">
+        <div><h1 tabindex="-1" class="text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">Notifications</h1><p class="mt-2 text-body-md text-on-surface-variant">Updates about complaint assignments and status changes.</p></div>
+        @if (_notifications?.Any(item => !item.IsRead) == true)
+        {
+            <button type="button" class="btn btn-secondary shrink-0" disabled="@_busy" @onclick="MarkAllReadAsync"><Icon Name="done_all" />Mark all as read</button>
+        }
+    </header>
+
+    @if (_error is not null)
+    {
+        <div class="flex flex-col items-start gap-md rounded-xl bg-error-container p-lg text-on-error-container sm:flex-row sm:items-center sm:justify-between" role="alert">
+            <div><h2 class="text-title-md">Notifications couldn't be loaded</h2><p class="text-body-md">@_error</p></div>
+            <button type="button" class="btn btn-primary shrink-0" @onclick="LoadAsync">Try again</button>
+        </div>
+    }
+    else if (_notifications is null)
+    {
+        <div role="status" aria-label="Loading notifications" class="flex flex-col gap-md">
+            <div class="h-28 animate-pulse rounded-xl bg-surface-container"></div><div class="h-28 animate-pulse rounded-xl bg-surface-container"></div><div class="h-28 animate-pulse rounded-xl bg-surface-container"></div>
+        </div>
+    }
+    else if (_notifications.Count == 0)
+    {
+        <section class="flex flex-col items-center gap-md rounded-xl border border-surface-variant bg-surface-container-lowest p-xl text-center" role="status">
+            <span class="flex size-12 items-center justify-center rounded-full bg-primary-fixed text-primary"><Icon Name="notifications_none" /></span>
+            <h2 class="text-title-md text-on-surface">You're all caught up</h2>
+            <p class="text-body-md text-on-surface-variant">Complaint updates will appear here.</p>
+        </section>
+    }
+    else
+    {
+        @if (_notice is not null) { <p class="rounded-lg bg-primary-fixed px-md py-sm text-body-md text-on-primary-fixed" role="status">@_notice</p> }
+        <ol class="divide-y divide-outline-variant/50 border-y border-outline-variant/50" aria-label="Your notifications">
+            @foreach (var notification in _notifications.OrderByDescending(item => item.CreatedAt))
+            {
+                <li @key="notification.Id" class="flex items-start gap-md py-lg @(notification.IsRead ? "" : "bg-primary-fixed/20")">
+                    <span class="mt-1 flex size-10 shrink-0 items-center justify-center rounded-full @(notification.IsRead ? "bg-surface-container text-on-surface-variant" : "bg-primary-fixed text-primary")" aria-hidden="true">
+                        <Icon Name="@(notification.IsRead ? "notifications" : "mark_email_unread")" />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-baseline justify-between gap-x-md gap-y-1">
+                            <h2 class="text-label-md font-semibold text-on-surface">@notification.Title</h2>
+                            <time class="text-caption text-on-surface-variant" datetime="@notification.CreatedAt.ToString("O")">@notification.CreatedAt.ToLocalTime().ToString("MMM d, yyyy · h:mm tt")</time>
+                        </div>
+                        <p class="mt-1 whitespace-pre-wrap text-body-md text-on-surface-variant">@notification.Message</p>
+                        <div class="mt-sm flex flex-wrap items-center gap-md">
+                            @if (notification.ComplaintId.HasValue)
+                            {
+                                <a href="@AppRoutes.ComplaintDetails(notification.ComplaintId.Value)" class="text-label-sm text-primary hover:underline">View complaint #@notification.ComplaintId</a>
+                            }
+                            @if (!notification.IsRead)
+                            {
+                                <button type="button" class="text-label-sm text-primary hover:underline disabled:opacity-50" disabled="@_busy" @onclick="() => MarkReadAsync(notification)">Mark as read</button>
+                            }
+                        </div>
+                    </div>
+                </li>
+            }
+        </ol>
+    }
+</div>
+
+@code {
+    private List<ApiNotification>? _notifications;
+    private string? _error;
+    private string? _notice;
+    private bool _busy;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        try { _notifications = (await Api.GetNotificationsAsync()).ToList(); }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load notifications");
+            _error = ex is UnauthorizedAccessException ? ex.Message : "Check the API connection and try again.";
+        }
+    }
+
+    private async Task MarkReadAsync(ApiNotification notification)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Api.MarkNotificationReadAsync(notification.Id);
+            notification.IsRead = true;
+            _notice = "Notification marked as read.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to mark notification {NotificationId} as read", notification.Id);
+            _error = "This notification could not be updated. Try again.";
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task MarkAllReadAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Api.MarkAllNotificationsReadAsync();
+            foreach (var notification in _notifications!) notification.IsRead = true;
+            _notice = "All notifications marked as read.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to mark all notifications as read");
+            _error = "Notifications could not be updated. Try again.";
+        }
+        finally { _busy = false; }
+    }
+}
