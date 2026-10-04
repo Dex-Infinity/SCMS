@@ -58,10 +58,9 @@ builder.Services.AddScoped<IAnalyticsService, ApiAnalyticsService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler("/Error", createScopeForErrors: true);
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
@@ -177,8 +176,8 @@ app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory cli
     }
     catch (Exception ex)
     {
-        var msg = Uri.EscapeDataString($"Unable to reach backend API: {ex.Message}");
-        return Results.Redirect($"/signup?error=1&message={msg}");
+        var connErr = Uri.EscapeDataString($"Unable to reach the server: {ex.Message}");
+        return Results.Redirect($"/signup?error=1&message={connErr}");
     }
 
     if (!response.IsSuccessStatusCode)
@@ -208,10 +207,6 @@ app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory cli
                     }
                 }
                 if (list.Count > 0) errorMessage = string.Join(" ", list);
-            }
-            else if (errorObj.TryGetProperty("title", out var titleProp) && titleProp.ValueKind == System.Text.Json.JsonValueKind.String)
-            {
-                errorMessage = titleProp.GetString();
             }
         }
         catch { }
