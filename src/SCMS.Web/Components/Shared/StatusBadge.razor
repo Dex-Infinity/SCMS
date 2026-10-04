@@ -4,15 +4,7 @@
     [Parameter, EditorRequired]
     public ComplaintStatus Status { get; set; }
 
-    private string Label => Status switch
-    {
-        ComplaintStatus.Pending => "Pending",
-        ComplaintStatus.UnderReview => "Under Review",
-        ComplaintStatus.Assigned => "Assigned",
-        ComplaintStatus.Resolved => "Resolved",
-        ComplaintStatus.Rejected => "Rejected",
-        _ => Status.ToString()
-    };
+    private string Label => Status.ToLabel();
 
     // Tinted background + dark text of the same hue. Keep the class names literal so Tailwind can find them.
     private string Classes => Status switch

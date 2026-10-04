@@ -1,0 +1,202 @@
+@page "/complaints/{Id:int}"
+@inject IMyComplaintsService Complaints
+@inject ILogger<ComplaintDetails> Logger
+
+<PageTitle>@(_complaint is null ? "Complaint Details" : $"{_complaint.Reference} - SCMS Portal")</PageTitle>
+
+<div class="mx-auto flex w-full max-w-[1140px] flex-col gap-xl">
+    <a href="@AppRoutes.Complaints" class="inline-flex w-fit items-center gap-2 text-label-sm text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary-container">
+        <Icon Name="arrow_back" Class="text-[20px]" />
+        Back to my complaints
+    </a>
+
+    @if (_loadFailed)
+    {
+        <section class="flex flex-col items-start gap-md rounded-xl bg-error-container p-lg text-on-error-container sm:flex-row sm:items-center sm:justify-between" role="alert">
+            <div class="flex items-start gap-3">
+                <Icon Name="error" />
+                <div>
+                    <h1 class="text-title-md">We couldn't load this complaint</h1>
+                    <p class="text-body-md">Check your connection and try again.</p>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary shrink-0" @onclick="LoadAsync">Try again</button>
+        </section>
+    }
+    else if (_complaints is null)
+    {
+        <div role="status" aria-label="Loading complaint details" class="h-80 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"></div>
+    }
+    else if (_complaint is null)
+    {
+        <section class="flex flex-col items-start gap-md rounded-xl border border-surface-variant bg-surface-container-lowest p-xl">
+            <span class="flex size-12 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
+                <Icon Name="search_off" />
+            </span>
+            <div>
+                <h1 class="text-title-md text-on-surface">Complaint not found</h1>
+                <p class="mt-1 text-body-md text-on-surface-variant">This complaint may have been removed or may not belong to your account.</p>
+            </div>
+            <a href="@AppRoutes.Complaints" class="btn btn-secondary">View my complaints</a>
+        </section>
+    }
+    else
+    {
+        <header class="flex flex-col gap-lg border-b border-surface-variant pb-lg sm:flex-row sm:items-end sm:justify-between">
+            <div class="min-w-0">
+                <p class="mb-2 text-label-sm font-medium text-secondary">Complaint #@_complaint.Reference</p>
+                <h1 tabindex="-1" class="text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">@_complaint.Subject</h1>
+                <p class="mt-2 text-body-md text-on-surface-variant">Submitted @_complaint.SubmittedAt.ToString("MMMM d, yyyy")</p>
+            </div>
+            <StatusBadge Status="_complaint.Status" />
+        </header>
+
+        <section class="flex flex-col gap-lg rounded-xl border border-surface-variant bg-surface-container-lowest p-lg md:p-xl" aria-labelledby="progress-heading">
+            <div>
+                <h2 id="progress-heading" class="text-title-md text-on-surface">Resolution progress</h2>
+                <p class="mt-1 text-body-md text-on-surface-variant">Your complaint's current stage in the review process.</p>
+            </div>
+            <ol class="flex flex-col gap-md md:flex-row md:items-start md:gap-0" aria-label="Complaint status">
+                @for (var index = 0; index < _steps.Length; index++)
+                {
+                    var stepIndex = index;
+                    <li class="flex min-w-0 items-center gap-3 md:flex-1 md:flex-col md:items-stretch md:gap-2">
+                        <div class="flex items-center md:w-full">
+                            <span class="flex size-8 shrink-0 items-center justify-center rounded-full @StepMarkerClass(stepIndex)" aria-current="@(stepIndex == CurrentStep ? "step" : null)">
+                                @if (stepIndex < CurrentStep)
+                                {
+                                    <Icon Name="check" Class="text-[18px]" />
+                                }
+                                else
+                                {
+                                    <span class="text-label-sm">@(stepIndex + 1)</span>
+                                }
+                            </span>
+                            @if (stepIndex < _steps.Length - 1)
+                            {
+                                <span aria-hidden="true" class="ml-3 h-px flex-1 bg-surface-variant md:ml-2 md:mr-2"></span>
+                            }
+                        </div>
+                        <span class="text-label-sm @(stepIndex == CurrentStep ? "font-semibold text-primary" : stepIndex < CurrentStep ? "text-on-surface" : "text-on-surface-variant")">@_steps[stepIndex]</span>
+                    </li>
+                }
+            </ol>
+        </section>
+
+        <div class="grid grid-cols-1 gap-lg lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <section class="flex flex-col gap-lg rounded-xl border border-surface-variant bg-surface-container-lowest p-lg md:p-xl" aria-labelledby="overview-heading">
+                <div>
+                    <h2 id="overview-heading" class="text-title-md text-on-surface">Complaint overview</h2>
+                    <p class="mt-1 text-body-md text-on-surface-variant">The information recorded with your submission.</p>
+                </div>
+                <dl class="grid grid-cols-1 gap-lg border-t border-surface-variant pt-lg sm:grid-cols-2">
+                    <div>
+                        <dt class="text-caption text-on-surface-variant">Reference number</dt>
+                        <dd class="mt-1 text-body-md font-medium text-on-surface">#@_complaint.Reference</dd>
+                    </div>
+                    <div>
+                        <dt class="text-caption text-on-surface-variant">Category</dt>
+                        <dd class="mt-1 text-body-md font-medium text-on-surface">@_complaint.Category</dd>
+                    </div>
+                    <div>
+                        <dt class="text-caption text-on-surface-variant">Date submitted</dt>
+                        <dd class="mt-1 text-body-md font-medium text-on-surface"><time datetime="@_complaint.SubmittedAt.ToString("yyyy-MM-dd")">@_complaint.SubmittedAt.ToString("MMMM d, yyyy")</time></dd>
+                    </div>
+                    <div>
+                        <dt class="text-caption text-on-surface-variant">Current status</dt>
+                        <dd class="mt-1"><StatusBadge Status="_complaint.Status" /></dd>
+                    </div>
+                </dl>
+            </section>
+
+            <aside class="flex flex-col gap-md rounded-xl border border-surface-variant bg-surface-container-low p-lg" aria-labelledby="next-step-heading">
+                <span class="flex size-10 items-center justify-center rounded-full bg-surface-container-high text-primary">
+                    <Icon Name="@NextStepIcon" />
+                </span>
+                <div>
+                    <h2 id="next-step-heading" class="text-title-md text-on-surface">@NextStepTitle</h2>
+                    <p class="mt-2 text-body-md text-on-surface-variant">@NextStepDescription</p>
+                </div>
+                <a href="@AppRoutes.Complaints" class="mt-auto inline-flex w-fit items-center gap-2 text-label-sm text-primary hover:underline">
+                    View all complaints
+                    <Icon Name="arrow_forward" Class="text-[18px]" />
+                </a>
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private static readonly string[] _steps = ["Received", "Under review", "Assigned", "Complete"];
+    private IReadOnlyList<ComplaintSummary>? _complaints;
+    private ComplaintSummary? _complaint;
+    private bool _loadFailed;
+
+    private int CurrentStep => _complaint?.Status switch
+    {
+        ComplaintStatus.Pending => 0,
+        ComplaintStatus.UnderReview => 1,
+        ComplaintStatus.Assigned => 2,
+        ComplaintStatus.Resolved or ComplaintStatus.Rejected => 3,
+        _ => 0
+    };
+
+    private string StepMarkerClass(int index) => index < CurrentStep
+        ? "bg-primary-container text-on-primary"
+        : index == CurrentStep
+            ? "bg-primary-container text-on-primary ring-4 ring-primary-fixed"
+            : "bg-surface-container text-on-surface-variant";
+
+    private string NextStepIcon => _complaint?.Status switch
+    {
+        ComplaintStatus.Pending => "hourglass_top",
+        ComplaintStatus.UnderReview => "fact_check",
+        ComplaintStatus.Assigned => "support_agent",
+        ComplaintStatus.Resolved => "check_circle",
+        ComplaintStatus.Rejected => "info",
+        _ => "info"
+    };
+
+    private string NextStepTitle => _complaint?.Status switch
+    {
+        ComplaintStatus.Pending => "Awaiting review",
+        ComplaintStatus.UnderReview => "Under review",
+        ComplaintStatus.Assigned => "Assigned for action",
+        ComplaintStatus.Resolved => "Complaint resolved",
+        ComplaintStatus.Rejected => "Review complete",
+        _ => "Complaint status"
+    };
+
+    private string NextStepDescription => _complaint?.Status switch
+    {
+        ComplaintStatus.Pending => "Your complaint has been received and is waiting to be reviewed by the student support team.",
+        ComplaintStatus.UnderReview => "The student support team is reviewing the information you submitted.",
+        ComplaintStatus.Assigned => "Your complaint has been assigned to the team responsible for this category.",
+        ComplaintStatus.Resolved => "This complaint has been marked as resolved. Contact student support if you need further help.",
+        ComplaintStatus.Rejected => "This complaint review is complete. Contact student support if you have questions about the outcome.",
+        _ => "Check your complaint status again later for updates."
+    };
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loadFailed = false;
+        _complaints = null;
+        _complaint = null;
+
+        try
+        {
+            _complaints = await Complaints.GetAsync();
+            _complaint = _complaints.FirstOrDefault(complaint => complaint.Id == Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load complaint {ComplaintId}", Id);
+            _loadFailed = true;
+        }
+    }
+}
