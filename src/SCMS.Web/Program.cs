@@ -170,7 +170,16 @@ app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory cli
         email,
         form["FullName"].ToString(),
         form["Password"].ToString());
-    var response = await clients.CreateClient("SCMS.Api.Public").PostAsJsonAsync("api/auth/register", registration);
+    HttpResponseMessage response;
+    try
+    {
+        response = await clients.CreateClient("SCMS.Api.Public").PostAsJsonAsync("api/auth/register", registration);
+    }
+    catch (Exception ex)
+    {
+        var msg = Uri.EscapeDataString($"Unable to reach backend API: {ex.Message}");
+        return Results.Redirect($"/signup?error=1&message={msg}");
+    }
 
     if (!response.IsSuccessStatusCode)
     {
@@ -199,6 +208,10 @@ app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory cli
                     }
                 }
                 if (list.Count > 0) errorMessage = string.Join(" ", list);
+            }
+            else if (errorObj.TryGetProperty("title", out var titleProp) && titleProp.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                errorMessage = titleProp.GetString();
             }
         }
         catch { }
