@@ -149,14 +149,14 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var dbContext = services.GetRequiredService<ApplicationDbContext>();
-        dbContext.Database.EnsureCreated();
+        await dbContext.Database.MigrateAsync();
 
         var initializer = services.GetRequiredService<IDbInitializer>();
         await initializer.InitializeAsync();
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning("SQL Server LocalDB connection failed ({Message}). Falling back to In-Memory Database for API testing.", ex.Message);
+        app.Logger.LogWarning("SQL Server connection failed ({Message}). Falling back to In-Memory Database for API testing.", ex.Message);
     }
 }
 
