@@ -11,7 +11,6 @@ public class StatusCountDto
 public class DepartmentCountDto
 {
     public string? DepartmentId { get; set; }
-    public string? DepartmentName { get; set; }
     public string DepartmentName { get; set; } = "Unassigned";
     public int Count { get; set; }
 }
