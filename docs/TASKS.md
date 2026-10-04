@@ -24,11 +24,11 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 
 **Irene Darah-Mensah**
 - [x] Set up the Blazor project and shared layout (nav, auth-aware routing)
-- [ ] Build the admin dashboard (queue, filters, assign/update/resolve actions)
-- [ ] Build the notifications UI (in-app alerts for status changes)
-- [ ] Add client-side validation and loading/error states
-- [ ] Build the User Profile page (`/profile`)
-- [ ] Build the Settings page (`/settings`)
+- [x] Build the admin dashboard (queue, filters, assign/update/resolve actions)
+- [x] Build the notifications UI (in-app alerts for status changes)
+- [x] Add client-side validation and loading/error states
+- [x] Build the User Profile page (`/profile`)
+- [x] Build the Settings page (`/settings`)
 
 **Elikplim Yevu**
 - [x] Build the student complaint submission form (with file attachment upload)

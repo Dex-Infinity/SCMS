@@ -1,0 +1,11 @@
+@page "/access-denied"
+@attribute [AllowAnonymous]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Access denied - SCMS Portal</PageTitle>
+
+<section class="mx-auto max-w-2xl rounded-xl border border-outline-variant bg-surface-container-lowest p-xl">
+    <h1 class="text-headline-lg-mobile text-on-surface md:text-headline-lg">Access denied</h1>
+    <p class="mt-2 text-body-md text-on-surface-variant">This page is available to administrators only.</p>
+    <a href="@AppRoutes.Dashboard" class="btn btn-secondary mt-lg">Return to dashboard</a>
+</section>

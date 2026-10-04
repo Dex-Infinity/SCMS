@@ -1,7 +1,15 @@
 @page "/"
+@attribute [AllowAnonymous]
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationState
 
 @code {
-    // The sidebar brand links to "/"; send students to their dashboard.
-    protected override void OnInitialized() => Navigation.NavigateTo(AppRoutes.Dashboard, replace: true);
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthenticationState.GetAuthenticationStateAsync()).User;
+        var destination = user.Identity?.IsAuthenticated != true
+            ? "/login"
+            : user.IsInRole("Admin") ? AppRoutes.AdminDashboard : AppRoutes.Dashboard;
+        Navigation.NavigateTo(destination, replace: true);
+    }
 }

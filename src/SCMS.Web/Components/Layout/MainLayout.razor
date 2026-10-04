@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
-@inject ICurrentUserService Users
+@inject AuthenticationStateProvider AuthenticationState
+@inject ScmsApiClient Api
+@inject ILogger<MainLayout> Logger
 
 <div class="min-h-screen bg-surface text-on-surface">
     <a href="#main-content"
@@ -7,10 +9,11 @@
         Skip to main content
     </a>
 
-    <Sidebar IsOpen="_sidebarOpen" OnClose="CloseSidebar" />
+    <Sidebar IsOpen="_sidebarOpen" IsAuthenticated="_isAuthenticated" IsAdmin="_isAdmin" OnClose="CloseSidebar" />
 
     <div class="flex min-h-screen flex-col md:pl-64">
         <TopNavbar UserName="@(_user?.DisplayName ?? string.Empty)"
+                   IsAuthenticated="_isAuthenticated"
                    UnreadNotifications="@_unreadNotifications"
                    OnMenuClick="OpenSidebar" />
 
@@ -31,14 +34,32 @@
 </div>
 
 @code {
-    // TODO: replace with a real notification count.
-    private readonly int _unreadNotifications = 0;
-
+    private int _unreadNotifications;
     private CurrentUser? _user;
-
+    private bool _isAuthenticated;
+    private bool _isAdmin;
     private bool _sidebarOpen;
 
-    protected override async Task OnInitializedAsync() => _user = await Users.GetAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        var principal = (await AuthenticationState.GetAuthenticationStateAsync()).User;
+        _isAuthenticated = principal.Identity?.IsAuthenticated == true;
+        _isAdmin = principal.IsInRole("Admin");
+        if (!_isAuthenticated)
+        {
+            return;
+        }
+
+        _user = new CurrentUser(principal.Identity?.Name ?? "Account");
+        try
+        {
+            _unreadNotifications = await Api.GetUnreadCountAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not load the unread notification count");
+        }
+    }
 
     private void OpenSidebar() => _sidebarOpen = true;
     private void CloseSidebar() => _sidebarOpen = false;
