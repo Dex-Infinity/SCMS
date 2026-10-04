@@ -98,6 +98,7 @@ public class ComplaintService : IComplaintService
             Description = complaint.Description,
             StudentId = complaint.StudentId,
             StudentName = complaint.Student?.FullName,
+            StudentEmail = complaint.Student?.Email,
             DepartmentId = complaint.DepartmentId,
             DepartmentName = complaint.Department?.Name,
             Status = complaint.Status,

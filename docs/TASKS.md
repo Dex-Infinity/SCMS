@@ -9,16 +9,16 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 - [x] Build Complaint endpoints — create, get by student, get by ID, update status, assign to department
 - [x] Build Notification service — triggers updates on status change
 - [x] Write Swagger/OpenAPI docs for the API
-- [ ] Build NotificationsController to expose user notifications
-- [ ] Update ComplaintsController to allow students to fetch their own complaint details by ID
+- [x] Build NotificationsController to expose user notifications
+- [x] Update ComplaintsController to allow students to fetch their own complaint details by ID
 
 **Amartey Felix Laryea**
 - [x] Implement ASP.NET Identity — registration, login, student/admin roles, JWT/cookie auth
 - [x] Build Attachment handling — upload/download supporting documents
 - [x] Build Reports/Analytics endpoints — counts by status, department, resolution time
 - [x] Add validation and centralized error handling
-- [ ] Build Profile API endpoint for students to update personal details
-- [ ] Build Settings API endpoint to save user preferences
+- [x] Build Profile API endpoint for students to update personal details
+- [x] Build Settings API endpoint to save user preferences
 
 ## Frontend Developer
 
