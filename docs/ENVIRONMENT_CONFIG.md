@@ -26,6 +26,8 @@ Set these as **environment variables** or **CI/CD pipeline secrets** — never h
 | `SCMS_ADMIN_USERNAME` | Initial admin username | `sysadmin` |
 | `SCMS_ADMIN_FULLNAME` | Initial admin display name | `System Administrator` |
 
+The API accepts the `SCMS_DB_CONNECTION_STRING`, `SCMS_JWT_KEY`, `SCMS_UPLOAD_PATH`, and optional `SCMS_ADMIN_*` aliases directly. Alternatively, use the standard .NET hierarchical names such as `ConnectionStrings__DefaultConnection` and `Jwt__Key`. The database value must be a SQL Server connection string; a PostgreSQL `DATABASE_URL` cannot be used by the current EF Core provider.
+
 ## Docker / docker-compose
 
 Secrets are passed via `environment:` in `docker-compose.yml`:

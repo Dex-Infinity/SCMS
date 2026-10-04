@@ -13,6 +13,25 @@ using SCMS.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var deploymentOverrides = new Dictionary<string, string?>();
+MapEnvironmentAlias("ConnectionStrings:DefaultConnection", "SCMS_DB_CONNECTION_STRING");
+MapEnvironmentAlias("Jwt:Key", "SCMS_JWT_KEY");
+MapEnvironmentAlias("Attachments:StoragePath", "SCMS_UPLOAD_PATH");
+MapEnvironmentAlias("Seed:AdminEmail", "SCMS_ADMIN_EMAIL");
+MapEnvironmentAlias("Seed:AdminPassword", "SCMS_ADMIN_PASSWORD");
+MapEnvironmentAlias("Seed:AdminUserName", "SCMS_ADMIN_USERNAME");
+MapEnvironmentAlias("Seed:AdminFullName", "SCMS_ADMIN_FULLNAME");
+builder.Configuration.AddInMemoryCollection(deploymentOverrides);
+
+void MapEnvironmentAlias(string configurationKey, string environmentKey)
+{
+    var configuredValue = builder.Configuration[configurationKey];
+    if (string.IsNullOrWhiteSpace(configuredValue) || configuredValue.StartsWith("#{", StringComparison.Ordinal))
+    {
+        deploymentOverrides[configurationKey] = builder.Configuration[environmentKey];
+    }
+}
+
 // Add services to the container.
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
@@ -67,7 +86,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection before starting the API.");
+    throw new InvalidOperationException("Configure ConnectionStrings__DefaultConnection or SCMS_DB_CONNECTION_STRING before starting the API.");
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

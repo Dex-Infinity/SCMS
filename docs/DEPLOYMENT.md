@@ -152,6 +152,7 @@ It automatically restores, builds, and tests the solution on every push to `main
 
 1. Set all required secrets as environment variables on the host or in the CI/CD pipeline (see [ENVIRONMENT_CONFIG.md](./ENVIRONMENT_CONFIG.md))
   Set `ApiSettings__BaseUrl` for the web service to the deployed API's internal HTTPS URL.
+  On Render, set `SCMS_DB_CONNECTION_STRING` and `SCMS_JWT_KEY` on the API service. The API maps those names to its SQL Server connection and JWT settings. `SCMS_DB_CONNECTION_STRING` must point to a reachable SQL Server; Render's PostgreSQL `DATABASE_URL` is not compatible with this API.
 2. Set `ASPNETCORE_ENVIRONMENT=Production`
 3. Run:
    ```bash
