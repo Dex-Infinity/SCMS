@@ -14,7 +14,6 @@ using SCMS.Infrastructure.Identity;
 var builder = WebApplication.CreateBuilder(args);
 
 var deploymentOverrides = new Dictionary<string, string?>();
-MapEnvironmentAlias("ConnectionStrings:DefaultConnection", "SCMS_DB_CONNECTION_STRING");
 MapEnvironmentAlias("Jwt:Key", "SCMS_JWT_KEY");
 MapEnvironmentAlias("Attachments:StoragePath", "SCMS_UPLOAD_PATH");
 MapEnvironmentAlias("Seed:AdminEmail", "SCMS_ADMIN_EMAIL");
@@ -81,18 +80,64 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Configure EF Core DbContext with SQL Server (and fallback to InMemory for seamless dev testing)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Prefer .NET's connection-string setting, then Render's PostgreSQL URL.
+var connectionString = builder.Configuration["DATABASE_URL"];
+if (string.IsNullOrWhiteSpace(connectionString) || connectionString.StartsWith("#{", StringComparison.Ordinal))
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+}
+if (string.IsNullOrWhiteSpace(connectionString) || connectionString.StartsWith("#{", StringComparison.Ordinal))
+{
+    connectionString = builder.Configuration["SCMS_DB_CONNECTION_STRING"];
+}
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    throw new InvalidOperationException("Configure ConnectionStrings__DefaultConnection or SCMS_DB_CONNECTION_STRING before starting the API.");
+    throw new InvalidOperationException("Configure ConnectionStrings__DefaultConnection or DATABASE_URL with a PostgreSQL connection string before starting the API.");
 }
+
+connectionString = NormalizePostgresConnectionString(connectionString);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseSqlServer(connectionString);
+    options.UseNpgsql(connectionString);
 });
+
+static string NormalizePostgresConnectionString(string value)
+{
+    if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        || (uri.Scheme != "postgres" && uri.Scheme != "postgresql"))
+    {
+        return value;
+    }
+
+    var credentials = uri.UserInfo.Split(':', 2);
+    var database = Uri.UnescapeDataString(uri.AbsolutePath.Trim('/'));
+    if (credentials.Length != 2 || string.IsNullOrWhiteSpace(database))
+    {
+        throw new InvalidOperationException("DATABASE_URL must include a PostgreSQL username, password, host, and database name.");
+    }
+
+    var postgresConnection = new Npgsql.NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.IsDefaultPort ? 5432 : uri.Port,
+        Database = database,
+        Username = Uri.UnescapeDataString(credentials[0]),
+        Password = Uri.UnescapeDataString(credentials[1]),
+        SslMode = Npgsql.SslMode.Require
+    };
+
+    var sslMode = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
+        .Select(option => option.Split('=', 2))
+        .FirstOrDefault(parts => parts.Length == 2 && parts[0].Equals("sslmode", StringComparison.OrdinalIgnoreCase));
+    if (sslMode is { Length: 2 } && Enum.TryParse<Npgsql.SslMode>(Uri.UnescapeDataString(sslMode[1]), true, out var parsedSslMode))
+    {
+        postgresConnection.SslMode = parsedSslMode;
+    }
+
+    return postgresConnection.ConnectionString;
+}
 
 // Configure ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>

@@ -9,7 +9,7 @@ For secrets and environment-specific config, see [ENVIRONMENT_CONFIG.md](./ENVIR
 
 | Service | Container | Port |
 |---------|-----------|------|
-| SQL Server 2022 | `scms-sqlserver` | `1433` |
+| PostgreSQL 17 | `scms-postgres` | `5432` |
 | SCMS REST API | `scms-api` | `8080` |
 | SCMS Blazor Web App | `scms-web` | `8081` |
 
@@ -41,7 +41,7 @@ Once all containers are healthy, access the apps at:
 |-----|-----|
 | **Swagger UI** | http://localhost:8080/swagger |
 | **Web App** | http://localhost:8081 |
-| **SQL Server** | `localhost,1433` (user: `sa`, password in `docker-compose.yml`) |
+| **PostgreSQL** | `localhost:5432` (local-only credentials in `docker-compose.yml`) |
 
 > **Note**: The API waits for SQL Server to pass a health check before starting.  
 > The Web app waits for the API to pass its health check before starting.  
@@ -126,17 +126,15 @@ Invoke-WebRequest -Uri http://localhost:8080/swagger/v1/swagger.json -UseBasicPa
 
 ### Check the database has the SCMS schema
 ```bash
-docker exec -it scms-sqlserver /opt/mssql-tools18/bin/sqlcmd \
-  -S localhost -U sa -P "SCMS@SqlServer2026!" -C \
-  -Q "SELECT name FROM sys.databases"
-# Expect: SCMSDb listed
+docker exec -it scms-postgres psql -U scms -d SCMSDb -c "\\dt"
+# Expect: EF tables such as AspNetUsers and Complaints listed
 ```
 
 ### Stream live logs
 ```bash
 docker logs scms-api -f
 docker logs scms-web -f
-docker logs scms-sqlserver -f
+docker logs scms-postgres -f
 ```
 
 ---
@@ -152,7 +150,7 @@ It automatically restores, builds, and tests the solution on every push to `main
 
 1. Set all required secrets as environment variables on the host or in the CI/CD pipeline (see [ENVIRONMENT_CONFIG.md](./ENVIRONMENT_CONFIG.md))
   Set `ApiSettings__BaseUrl` for the web service to the deployed API's internal HTTPS URL.
-  On Render, set `SCMS_DB_CONNECTION_STRING` and `SCMS_JWT_KEY` on the API service. The API maps those names to its SQL Server connection and JWT settings. `SCMS_DB_CONNECTION_STRING` must point to a reachable SQL Server; Render's PostgreSQL `DATABASE_URL` is not compatible with this API.
+  On Render, attach the PostgreSQL database to the API service so `DATABASE_URL` is available, and set `SCMS_JWT_KEY` on the API service.
 2. Set `ASPNETCORE_ENVIRONMENT=Production`
 3. Run:
    ```bash

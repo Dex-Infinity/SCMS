@@ -18,7 +18,8 @@ Set these as **environment variables** or **CI/CD pipeline secrets** — never h
 |-------|-------------|---------|
 | `SCMS_API_BASE_URL` | Compose value forwarded to the web app's `ApiSettings__BaseUrl` | `http://api:8080` |
 | `ApiSettings__BaseUrl` | API base URL used by the web app when configured outside Compose | `https://api.example.edu` |
-| `SCMS_DB_CONNECTION_STRING` | SQL Server production connection string | `Server=prod-sql;Database=SCMSDb;User Id=sa;Password=...` |
+| `DATABASE_URL` | Render PostgreSQL internal database URL | `postgresql://user:password@host:5432/database` |
+| `ConnectionStrings__DefaultConnection` | Standard Npgsql connection string (alternative to `DATABASE_URL`) | `Host=db.example;Port=5432;Database=scms;Username=user;Password=...;SSL Mode=Require` |
 | `SCMS_JWT_KEY` | JWT signing key (min 32 chars, random) | Generate with: `openssl rand -base64 32` |
 | `SCMS_UPLOAD_PATH` | Absolute path for file uploads | `/var/scms/uploads` |
 | `SCMS_ADMIN_EMAIL` | Initial admin seed email | `admin@university.edu` |
@@ -26,7 +27,7 @@ Set these as **environment variables** or **CI/CD pipeline secrets** — never h
 | `SCMS_ADMIN_USERNAME` | Initial admin username | `sysadmin` |
 | `SCMS_ADMIN_FULLNAME` | Initial admin display name | `System Administrator` |
 
-The API accepts the `SCMS_DB_CONNECTION_STRING`, `SCMS_JWT_KEY`, `SCMS_UPLOAD_PATH`, and optional `SCMS_ADMIN_*` aliases directly. Alternatively, use the standard .NET hierarchical names such as `ConnectionStrings__DefaultConnection` and `Jwt__Key`. The database value must be a SQL Server connection string; a PostgreSQL `DATABASE_URL` cannot be used by the current EF Core provider.
+The API accepts Render's `DATABASE_URL` directly, or a standard Npgsql connection string through `ConnectionStrings__DefaultConnection`. `SCMS_DB_CONNECTION_STRING` is also accepted as an alias for either form. The API uses the Npgsql EF Core provider and applies migrations at startup.
 
 ## Docker / docker-compose
 
@@ -36,13 +37,13 @@ Secrets are passed via `environment:` in `docker-compose.yml`:
 api:
   environment:
     ASPNETCORE_ENVIRONMENT: "Production"
-    ConnectionStrings__DefaultConnection: "${SCMS_DB_CONNECTION_STRING}"
+    DATABASE_URL: "${DATABASE_URL}"
     Jwt__Key: "${SCMS_JWT_KEY}"
 ```
 
 Set them in a `.env` file (never commit this):
 ```env
-SCMS_DB_CONNECTION_STRING=Server=...
+DATABASE_URL=postgresql://user:password@host:5432/database
 SCMS_JWT_KEY=...
 SCMS_API_BASE_URL=http://api:8080
 ApiSettings__BaseUrl=https://api.example.edu
@@ -58,7 +59,7 @@ dotnet user-secrets set "Jwt:Key" "your-local-dev-key"
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your-local-db"
 ```
 
-The Development API connection string defaults to the SQL Server published by `docker compose` on `localhost,1433`. The web app requires `ApiSettings:BaseUrl`; it has no localhost fallback. Docker Compose sets this to `http://api:8080` for the web container.
+The Development API defaults to the PostgreSQL service published by `docker compose` on `localhost:5432`. The web app requires `ApiSettings:BaseUrl`; it has no localhost fallback. Docker Compose sets this to `http://api:8080` for the web container.
 
 ## .gitignore Rules
 

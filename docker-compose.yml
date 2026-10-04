@@ -1,5 +1,24 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: scms-postgres
+    environment:
+      POSTGRES_DB: SCMSDb
+      POSTGRES_USER: scms
+      POSTGRES_PASSWORD: "${SCMS_DB_PASSWORD:-scms_local_only_change_me}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   sqlserver:
+    profiles: ["legacy-sqlserver"]
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: scms-sqlserver
     environment:
@@ -32,11 +51,11 @@ services:
     container_name: scms-api
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SCMSDb;User Id=sa;Password=SCMS@SqlServer2026!;TrustServerCertificate=True;MultipleActiveResultSets=True"
+      DATABASE_URL: "postgresql://scms:${SCMS_DB_PASSWORD:-scms_local_only_change_me}@postgres:5432/SCMSDb?sslmode=disable"
     ports:
       - "8080:8080"
     depends_on:
-      sqlserver:
+      postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8080' 2>/dev/null || exit 1"]
@@ -60,4 +79,6 @@ services:
         condition: service_healthy
 
 volumes:
+  postgres_data:
+    name: scms_postgres_data
   sqlserver_data:
