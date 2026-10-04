@@ -46,7 +46,9 @@ builder.Services.AddHttpClient("SCMS.Api.Public", (services, client) =>
     client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
 });
 
-builder.Services.AddScoped<ScmsApiClient>();
+builder.Services.AddScoped(services => new ScmsApiClient(
+    services.GetRequiredService<IHttpClientFactory>().CreateClient("SCMS.Api"),
+    services.GetRequiredService<AuthenticationStateProvider>()));
 builder.Services.AddScoped<ApiClient>();
 builder.Services.AddScoped<IComplaintSubmissionService, ApiComplaintSubmissionService>();
 builder.Services.AddScoped<IStudentDashboardService, ApiStudentDashboardService>();
