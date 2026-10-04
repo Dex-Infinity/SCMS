@@ -114,7 +114,7 @@ app.MapPost("/auth/login", async (HttpContext context, IHttpClientFactory client
         ? returnUrl
         : authenticated.Roles.Contains("Admin", StringComparer.OrdinalIgnoreCase) ? AppRoutes.AdminDashboard : AppRoutes.Dashboard;
     return Results.Redirect(destination);
-});
+}).DisableAntiforgery();
 
 // Also support legacy/alternative /account/login endpoint
 app.MapPost("/account/login", async (HttpContext context, IHttpClientFactory clientFactory, IConfiguration configuration) =>
@@ -158,7 +158,7 @@ app.MapPost("/account/login", async (HttpContext context, IHttpClientFactory cli
         ? returnUrl
         : result.Roles.Contains("Admin", StringComparer.OrdinalIgnoreCase) ? AppRoutes.AdminDashboard : AppRoutes.Dashboard;
     return Results.Redirect(destination);
-});
+}).DisableAntiforgery();
 
 app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory clients) =>
 {
@@ -239,19 +239,19 @@ app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory cli
         new AuthenticationProperties { ExpiresUtc = authenticated.ExpiresAt });
 
     return Results.Redirect(AppRoutes.Dashboard);
-});
+}).DisableAntiforgery();
 
 app.MapPost("/auth/logout", async (HttpContext context) =>
 {
     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Redirect("/login");
-});
+}).DisableAntiforgery();
 
 app.MapPost("/account/logout", async (HttpContext context) =>
 {
     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Redirect("/login");
-});
+}).DisableAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
