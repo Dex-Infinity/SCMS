@@ -76,7 +76,7 @@ public sealed class ApiProfile
     public List<string> Roles { get; set; } = [];
 }
 
-public sealed class ApiSettings
+public sealed class ApiUserSettings
 {
     public string UserId { get; set; } = string.Empty;
     public bool EmailNotifications { get; set; }

@@ -1,5 +1,4 @@
 @page "/submit-complaint"
-@attribute [Authorize]
 @attribute [Authorize(Roles = "Student,Admin")]
 @inject IComplaintSubmissionService Submission
 @inject NavigationManager Navigation

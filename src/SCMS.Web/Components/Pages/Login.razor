@@ -1,4 +1,5 @@
 @page "/login"
+@attribute [AllowAnonymous]
 @layout Layout.LoginLayout
 
 <PageTitle>Sign in - SCMS Portal</PageTitle>
@@ -12,7 +13,7 @@
         <h1 tabindex="-1" class="text-headline-lg-mobile text-on-surface focus:outline-none">Sign in</h1>
         <p class="mt-2 text-body-md text-on-surface-variant">Use your SCMS account to continue.</p>
 
-        @if (Error)
+        @if (HasError)
         {
             <p class="mt-lg rounded-lg bg-error-container px-md py-sm text-body-md text-on-error-container" role="alert">
                 @(ErrorQuery == "session"
@@ -24,6 +25,7 @@
         }
 
         <form action="/auth/login" method="post" class="mt-xl flex flex-col gap-lg">
+            <input type="hidden" name="returnUrl" value="@SafeReturnUrl" />
             <div class="flex flex-col gap-2">
                 <label class="field-label" for="email">Email</label>
                 <input class="field-input" id="email" name="Email" type="email" autocomplete="username" required />
@@ -44,47 +46,10 @@
     [SupplyParameterFromQuery(Name = "error")]
     public string? ErrorQuery { get; set; }
 
-    private bool Error => ErrorQuery is "1" or "session";
-@attribute [AllowAnonymous]
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.WebUtilities
-
-<PageTitle>Sign in - SCMS Portal</PageTitle>
-
-<div class="mx-auto flex min-h-[70vh] w-full max-w-md items-center">
-    <section class="w-full rounded-xl border border-outline-variant bg-surface-container-lowest p-xl shadow-sm">
-        <div class="mb-xl">
-            <p class="text-label-sm font-semibold text-primary">SCMS PORTAL</p>
-            <h1 class="mt-2 text-headline-lg-mobile text-on-surface md:text-headline-lg">Sign in</h1>
-            <p class="mt-2 text-body-md text-on-surface-variant">Use your student or administrator account.</p>
-        </div>
-
-        @if (Error is not null)
-        {
-            <p class="mb-lg rounded-lg bg-error-container p-md text-body-md text-on-error-container" role="alert">We couldn't sign you in. Check your details and try again.</p>
-        }
-
-        <form method="post" action="/account/login" class="flex flex-col gap-lg">
-            <input type="hidden" name="returnUrl" value="@SafeReturnUrl" />
-            <div class="flex flex-col gap-2">
-                <label class="field-label" for="login-email">Email</label>
-                <input class="field-input" id="login-email" name="email" type="email" autocomplete="username" required />
-            </div>
-            <div class="flex flex-col gap-2">
-                <label class="field-label" for="login-password">Password</label>
-                <input class="field-input" id="login-password" name="password" type="password" autocomplete="current-password" required />
-            </div>
-            <button type="submit" class="btn btn-primary w-full">Sign in</button>
-        </form>
-    </section>
-</div>
-
-@code {
-    [SupplyParameterFromQuery(Name = "error")]
-    public string? Error { get; set; }
-
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string? ReturnUrl { get; set; }
+
+    private bool HasError => !string.IsNullOrWhiteSpace(ErrorQuery);
 
     private string SafeReturnUrl => !string.IsNullOrWhiteSpace(ReturnUrl) && ReturnUrl.StartsWith('/') && !ReturnUrl.StartsWith("//")
         ? ReturnUrl

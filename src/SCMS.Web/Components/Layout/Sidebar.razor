@@ -29,19 +29,15 @@
     </ul>
 
     <div class="mt-auto flex flex-col gap-sm">
-
-        <form action="/auth/logout" method="post">
-            <button type="submit" class="nav-link w-full">
-                <Icon Name="logout" />
-                <span>Logout</span>
-            </button>
-        </form>
         @if (IsAuthenticated)
         {
             <a href="@AppRoutes.Profile" class="nav-link" @onclick="CloseAsync"><Icon Name="person" /><span>Profile</span></a>
             <a href="@AppRoutes.Settings" class="nav-link" @onclick="CloseAsync"><Icon Name="settings" /><span>Settings</span></a>
-            <form method="post" action="/account/logout">
-                <button type="submit" class="nav-link w-full text-left"><Icon Name="logout" /><span>Logout</span></button>
+            <form action="/auth/logout" method="post">
+                <button type="submit" class="nav-link w-full text-left">
+                    <Icon Name="logout" />
+                    <span>Logout</span>
+                </button>
             </form>
         }
         else

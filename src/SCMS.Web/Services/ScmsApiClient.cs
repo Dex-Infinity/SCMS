@@ -33,15 +33,15 @@ public sealed class ScmsApiClient(HttpClient http, AuthenticationStateProvider a
     public Task<ApiProfile> UpdateProfileAsync(ProfileUpdate profile, CancellationToken cancellationToken = default) =>
         SendAsync<ApiProfile>(HttpMethod.Put, "api/profile/me", profile, cancellationToken);
 
-    public Task<ApiSettings> GetSettingsAsync(CancellationToken cancellationToken = default) =>
-        SendAsync<ApiSettings>(HttpMethod.Get, "api/settings/me", cancellationToken: cancellationToken);
+    public Task<ApiUserSettings> GetSettingsAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<ApiUserSettings>(HttpMethod.Get, "api/settings/me", cancellationToken: cancellationToken);
 
-    public Task<ApiSettings> UpdateSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken = default) =>
-        SendAsync<ApiSettings>(HttpMethod.Put, "api/settings/me", settings, cancellationToken);
+    public Task<ApiUserSettings> UpdateSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken = default) =>
+        SendAsync<ApiUserSettings>(HttpMethod.Put, "api/settings/me", settings, cancellationToken);
 
     public async Task<int> GetUnreadCountAsync(CancellationToken cancellationToken = default)
     {
-        var response = await SendAsync<UnreadCount>(HttpMethod.Get, "api/notifications/unread-count", cancellationToken: cancellationToken);
+        var response = await SendAsync<UnreadCountResult>(HttpMethod.Get, "api/notifications/unread-count", cancellationToken: cancellationToken);
         return response.UnreadCount;
     }
 
@@ -83,7 +83,7 @@ public sealed class ScmsApiClient(HttpClient http, AuthenticationStateProvider a
         return result ?? throw new HttpRequestException("The server returned an empty response.");
     }
 
-    private sealed class UnreadCount
+    private sealed class UnreadCountResult
     {
         public int UnreadCount { get; set; }
     }

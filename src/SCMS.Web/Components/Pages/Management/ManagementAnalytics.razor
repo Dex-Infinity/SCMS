@@ -1,5 +1,4 @@
 @page "/management/analytics"
-@attribute [Authorize(Roles = "Admin")]
 @attribute [Authorize(Roles = "Admin,Management")]
 @using System.Globalization
 @inject IAnalyticsService Analytics

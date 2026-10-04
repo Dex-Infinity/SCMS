@@ -2,13 +2,13 @@
     <DataAnnotationsValidator />
     <ValidationSummary class="text-caption text-error sm:col-span-4" />
     <div class="flex flex-col gap-2">
-        <label class="field-label" for="department-@ComplaintId">Department ID</label>
-        <InputNumber id="department-@ComplaintId" class="field-input" @bind-Value="Model.DepartmentId" min="1" required />
+        <label class="field-label" for="@($"department-{ComplaintId}")">Department ID</label>
+        <InputNumber id="@($"department-{ComplaintId}")" class="field-input" @bind-Value="Model.DepartmentId" min="1" required />
         <ValidationMessage For="() => Model.DepartmentId" />
     </div>
     <div class="flex flex-col gap-2">
-        <label class="field-label" for="staff-@ComplaintId">Assigned staff ID <span class="text-outline">(optional)</span></label>
-        <InputNumber id="staff-@ComplaintId" class="field-input" @bind-Value="Model.AssignedToId" min="1" />
+        <label class="field-label" for="@($"staff-{ComplaintId}")">Assigned staff ID <span class="text-outline">(optional)</span></label>
+        <InputNumber id="@($"staff-{ComplaintId}")" class="field-input" @bind-Value="Model.AssignedToId" min="1" />
     </div>
     <button type="submit" class="btn btn-primary" disabled="@Busy">
         @if (Busy) { <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" /><span>Saving</span> }
