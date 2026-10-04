@@ -1,0 +1,256 @@
+@page "/complaints"
+@inject IMyComplaintsService Complaints
+@inject ILogger<MyComplaints> Logger
+
+<PageTitle>My Complaints - SCMS Portal</PageTitle>
+
+<div class="mx-auto flex w-full max-w-[1140px] flex-col gap-xl">
+
+    <div class="flex flex-col justify-between gap-md sm:flex-row sm:items-end">
+        <div>
+            <h1 tabindex="-1" class="mb-2 text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">My Complaints</h1>
+            <p class="text-body-md text-on-surface-variant">Track every complaint you've filed and see where each one stands.</p>
+        </div>
+        <a href="@AppRoutes.SubmitComplaint" class="btn btn-primary shrink-0">
+            <Icon Name="add" />
+            Submit Complaint
+        </a>
+    </div>
+
+    @if (_loadFailed)
+    {
+        <div class="flex flex-col items-start gap-md rounded-xl bg-error-container p-lg text-on-error-container sm:flex-row sm:items-center sm:justify-between" role="alert">
+            <div class="flex items-start gap-3">
+                <Icon Name="error" />
+                <div>
+                    <p class="text-title-md">We couldn't load your complaints</p>
+                    <p class="text-body-md">Check your connection and try again.</p>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary shrink-0" @onclick="LoadAsync">Try again</button>
+        </div>
+    }
+    else if (_all is null)
+    {
+        <div role="status" aria-label="Loading your complaints" class="h-96 animate-pulse rounded-xl bg-surface-container motion-reduce:animate-none"></div>
+    }
+    else if (_all.Count == 0)
+    {
+        <section class="flex flex-col items-center gap-md rounded-xl border border-surface-variant bg-surface-container-lowest p-xl text-center shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <span class="flex size-14 items-center justify-center rounded-full bg-primary-fixed text-primary-container">
+                <Icon Name="assignment" Class="text-[32px]" />
+            </span>
+            <h2 class="text-title-md text-on-surface">You haven't filed any complaints yet</h2>
+            <p class="max-w-prose text-body-md text-secondary">When you submit a complaint, it will appear here so you can follow its progress.</p>
+            <a href="@AppRoutes.SubmitComplaint" class="btn btn-primary">Submit your first complaint</a>
+        </section>
+    }
+    else
+    {
+        var filtered = Filter();
+        var pageCount = Math.Max(1, (int)Math.Ceiling(filtered.Count / (double)PageSize));
+        var page = Math.Min(_page, pageCount);
+        var pageItems = filtered.Skip((page - 1) * PageSize).Take(PageSize).ToList();
+
+        <section class="overflow-hidden rounded-xl border border-surface-variant bg-surface-container-lowest shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+
+            @* Filters *@
+            <div class="flex flex-col gap-md border-b border-surface-variant p-lg sm:flex-row sm:items-center">
+                <div class="relative min-w-0 flex-1 sm:max-w-[28rem]">
+                    <label for="complaint-search" class="sr-only">Search your complaints</label>
+                    <Icon Name="search" Class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-outline" />
+                    <input id="complaint-search" type="text" autocomplete="off" class="field-input pl-10" placeholder="Search by subject, ID or category"
+                           @bind="Search" @bind:event="oninput" />
+                </div>
+
+                <div class="relative">
+                    <label for="status-filter" class="sr-only">Filter by status</label>
+                    <select id="status-filter" class="field-input w-full appearance-none pr-10 sm:w-auto" @bind="StatusFilterValue">
+                        <option value="">All statuses</option>
+                        @foreach (var status in Enum.GetValues<ComplaintStatus>())
+                        {
+                            <option value="@status">@status.ToLabel()</option>
+                        }
+                    </select>
+                    <Icon Name="expand_more" Class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-outline" />
+                </div>
+
+                @if (HasFilters)
+                {
+                    <button type="button" class="self-start text-label-sm text-primary hover:underline sm:self-auto" @onclick="ClearFilters">Clear filters</button>
+                }
+            </div>
+
+            @if (filtered.Count == 0)
+            {
+                <div class="flex flex-col items-center gap-md p-xl text-center" role="status">
+                    <Icon Name="search_off" Class="text-[32px] text-outline" />
+                    <p class="text-body-md text-secondary">No complaints match your search or filter.</p>
+                    <button type="button" class="btn btn-secondary" @onclick="ClearFilters">Clear filters</button>
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-left">
+                        <caption class="sr-only">Your complaints. Column headings are buttons that sort the table.</caption>
+                        <thead>
+                            <tr class="border-b border-surface-variant bg-surface-container-low">
+                                @SortHeader(SortColumn.Reference, "ID")
+                                @SortHeader(SortColumn.Subject, "Subject")
+                                @SortHeader(SortColumn.Category, "Category")
+                                @SortHeader(SortColumn.Date, "Date Submitted")
+                                @SortHeader(SortColumn.Status, "Status")
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-surface-variant text-body-md text-on-surface">
+                            @foreach (var complaint in pageItems)
+                            {
+                                <tr @key="complaint.Id" class="group transition-colors hover:bg-surface-container-low/50">
+                                    <td class="p-4 font-medium whitespace-nowrap text-secondary">#@complaint.Reference</td>
+                                    <td class="p-4">
+                                        <a href="@AppRoutes.ComplaintDetails(complaint.Id)" class="transition-colors group-hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary-container">@complaint.Subject</a>
+                                    </td>
+                                    <td class="p-4 text-on-surface-variant">@complaint.Category</td>
+                                    <td class="p-4 whitespace-nowrap text-on-surface-variant">@complaint.SubmittedAt.ToString("MMM dd, yyyy")</td>
+                                    <td class="p-4"><StatusBadge Status="complaint.Status" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <Pager Page="page" PageSize="PageSize" TotalItems="filtered.Count" ItemName="complaints" OnPageChange="GoToPage" />
+            }
+        </section>
+    }
+</div>
+
+@code {
+    private const int PageSize = 10;
+
+    private enum SortColumn { Reference, Subject, Category, Date, Status }
+
+    private IReadOnlyList<ComplaintSummary>? _all;
+    private bool _loadFailed;
+
+    private string _search = string.Empty;
+    private ComplaintStatus? _statusFilter;
+    private SortColumn _sortBy = SortColumn.Date;
+    private bool _descending = true;
+    private int _page = 1;
+
+    // Changing a filter always returns to the first page.
+    private string Search
+    {
+        get => _search;
+        set
+        {
+            _search = value;
+            _page = 1;
+        }
+    }
+
+    private string StatusFilterValue
+    {
+        get => _statusFilter?.ToString() ?? string.Empty;
+        set
+        {
+            _statusFilter = Enum.TryParse<ComplaintStatus>(value, out var status) ? status : null;
+            _page = 1;
+        }
+    }
+
+    private bool HasFilters => _search.Trim().Length > 0 || _statusFilter is not null;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loadFailed = false;
+        _all = null;
+
+        try
+        {
+            _all = await Complaints.GetAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load the student's complaints");
+            _loadFailed = true;
+        }
+    }
+
+    private List<ComplaintSummary> Filter()
+    {
+        IEnumerable<ComplaintSummary> items = _all ?? [];
+
+        var query = _search.Trim();
+        if (query.Length > 0)
+        {
+            items = items.Where(c =>
+                c.Subject.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || c.Reference.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || c.Category.Contains(query, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (_statusFilter is { } status)
+        {
+            items = items.Where(c => c.Status == status);
+        }
+
+        return Sort(items).ToList();
+    }
+
+    private IEnumerable<ComplaintSummary> Sort(IEnumerable<ComplaintSummary> items) => _sortBy switch
+    {
+        SortColumn.Reference => OrderBy(items, c => c.Reference),
+        SortColumn.Subject => OrderBy(items, c => c.Subject),
+        SortColumn.Category => OrderBy(items, c => c.Category),
+        SortColumn.Status => OrderBy(items, c => (int)c.Status),
+        _ => OrderBy(items, c => c.SubmittedAt)
+    };
+
+    private IEnumerable<ComplaintSummary> OrderBy<TKey>(IEnumerable<ComplaintSummary> items, Func<ComplaintSummary, TKey> key) =>
+        _descending ? items.OrderByDescending(key) : items.OrderBy(key);
+
+    private void SortBy(SortColumn column)
+    {
+        if (_sortBy == column)
+        {
+            _descending = !_descending;
+        }
+        else
+        {
+            _sortBy = column;
+            _descending = column == SortColumn.Date; // newest first for dates, A-Z for everything else
+        }
+
+        _page = 1;
+    }
+
+    private void GoToPage(int page) => _page = page;
+
+    private void ClearFilters()
+    {
+        _search = string.Empty;
+        _statusFilter = null;
+        _page = 1;
+    }
+
+    private string AriaSort(SortColumn column) =>
+        _sortBy != column ? "none" : _descending ? "descending" : "ascending";
+
+    private string SortIcon(SortColumn column) =>
+        _sortBy != column ? "unfold_more" : _descending ? "arrow_downward" : "arrow_upward";
+
+    private RenderFragment SortHeader(SortColumn column, string label) =>
+        @<th scope="col" aria-sort="@AriaSort(column)" class="p-0">
+            <button type="button"
+                    class="flex w-full items-center gap-1 p-4 text-left text-label-sm font-semibold whitespace-nowrap text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary-container"
+                    @onclick="() => SortBy(column)">
+                @label
+                <Icon Name="@SortIcon(column)" Class="@(_sortBy == column ? "text-[18px] text-primary" : "text-[18px] text-outline")" />
+            </button>
+        </th>;
+}
