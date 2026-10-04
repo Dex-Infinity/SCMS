@@ -4,6 +4,7 @@
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
             <NotAuthorized>
+                <RedirectToLogin />
                 <div class="mx-auto max-w-2xl rounded-xl border border-outline-variant bg-surface-container-lowest p-xl" role="status">
                     <h1 class="text-title-md text-on-surface">Sign in required</h1>
                     <p class="mt-2 text-body-md text-on-surface-variant">Sign in with an authorized account to continue.</p>

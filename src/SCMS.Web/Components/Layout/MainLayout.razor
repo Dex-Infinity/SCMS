@@ -1,4 +1,7 @@
 @inherits LayoutComponentBase
+@inject ICurrentUserService Users
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationState
 @inject ScmsApiClient Api
 @inject ILogger<MainLayout> Logger
@@ -42,6 +45,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authenticationState.User.Identity?.IsAuthenticated != true)
         var principal = (await AuthenticationState.GetAuthenticationStateAsync()).User;
         _isAuthenticated = principal.Identity?.IsAuthenticated == true;
         _isAdmin = principal.IsInRole("Admin");
@@ -50,6 +55,13 @@
             return;
         }
 
+        try
+        {
+            _user = await Users.GetAsync();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Navigation.NavigateTo("/login?error=session", forceLoad: true);
         _user = new CurrentUser(principal.Identity?.Name ?? "Account");
         try
         {

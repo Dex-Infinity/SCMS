@@ -1,4 +1,5 @@
 @page "/complaints/{Id:int}"
+@attribute [Authorize]
 @attribute [Authorize(Roles = "Student,Admin")]
 @inject IMyComplaintsService Complaints
 @inject ILogger<ComplaintDetails> Logger
@@ -108,6 +109,10 @@
                         <dd class="mt-1"><StatusBadge Status="_complaint.Status" /></dd>
                     </div>
                 </dl>
+                <div class="border-t border-surface-variant pt-lg">
+                    <h3 class="text-label-sm text-on-surface-variant">Description</h3>
+                    <p class="mt-2 whitespace-pre-wrap break-words text-body-md text-on-surface">@_complaint.Description</p>
+                </div>
             </section>
 
             <aside class="flex flex-col gap-md rounded-xl border border-surface-variant bg-surface-container-low p-lg" aria-labelledby="next-step-heading">
