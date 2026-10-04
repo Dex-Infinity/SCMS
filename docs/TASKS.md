@@ -46,9 +46,9 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 - [x] Run usability check with sample students/admins, revise flows
 
 **Quartey Obed Nii Kpakpa**
-- [ ] Map user flows for admins (review → assign → resolve)
-- [ ] Wireframe the student dashboard (submission form, tracking page)
-- [ ] Wireframe the management reporting dashboard
+- [x] Map user flows for admins (review → assign → resolve)
+- [x] Wireframe the student dashboard (submission form, tracking page)
+- [x] Wireframe the management reporting dashboard
 - [x] Build the design system (colors, typography, buttons, status badges), store exports in `docs/wireframes/`
 
 ## Database Engineer
@@ -71,8 +71,8 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 ## DevOps Engineer
 
 **Keren Asabea Acquaah**
-- [ ] Manage environment configuration (connection strings, secrets, dev/staging/prod settings)
-- [ ] Monitor open PRs and help resolve merge conflicts between teammates
+- [x] Manage environment configuration (connection strings, secrets, dev/staging/prod settings)
+- [x] Monitor open PRs and help resolve merge conflicts between teammates
 
 **Rushdan Delimwine Antiku**
 - [x] Set up the SQL Server environment and deployment
