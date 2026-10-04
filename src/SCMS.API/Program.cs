@@ -4,7 +4,6 @@ using SCMS.API.Middleware;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SCMS.API.Repositories;
@@ -149,14 +148,14 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var dbContext = services.GetRequiredService<ApplicationDbContext>();
-        dbContext.Database.EnsureCreated();
+        await dbContext.Database.MigrateAsync();
 
         var initializer = services.GetRequiredService<IDbInitializer>();
         await initializer.InitializeAsync();
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning("SQL Server LocalDB connection failed ({Message}). Falling back to In-Memory Database for API testing.", ex.Message);
+        app.Logger.LogWarning("SQL Server connection failed ({Message}). Falling back to In-Memory Database for API testing.", ex.Message);
     }
 }
 

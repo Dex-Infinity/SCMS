@@ -1,5 +1,6 @@
 @page "/dashboard"
 @attribute [Authorize]
+@attribute [Authorize(Roles = "Student,Admin")]
 @inject IStudentDashboardService Dashboard
 @inject ICurrentUserService Users
 @inject ILogger<StudentDashboard> Logger

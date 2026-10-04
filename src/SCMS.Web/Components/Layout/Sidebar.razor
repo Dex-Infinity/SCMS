@@ -17,7 +17,7 @@
     </a>
 
     <ul class="mt-lg flex flex-1 flex-col gap-base">
-        @foreach (var item in Items)
+        @foreach (var item in VisibleItems)
         {
             <li>
                 <NavLink href="@item.Href" Match="NavLinkMatch.Prefix" class="nav-link" ActiveClass="active" @onclick="CloseAsync">
@@ -36,6 +36,18 @@
                 <span>Logout</span>
             </button>
         </form>
+        @if (IsAuthenticated)
+        {
+            <a href="@AppRoutes.Profile" class="nav-link" @onclick="CloseAsync"><Icon Name="person" /><span>Profile</span></a>
+            <a href="@AppRoutes.Settings" class="nav-link" @onclick="CloseAsync"><Icon Name="settings" /><span>Settings</span></a>
+            <form method="post" action="/account/logout">
+                <button type="submit" class="nav-link w-full text-left"><Icon Name="logout" /><span>Logout</span></button>
+            </form>
+        }
+        else
+        {
+            <a href="/login" class="nav-link"><Icon Name="login" /><span>Sign in</span></a>
+        }
     </div>
 </nav>
 
@@ -50,9 +62,21 @@
         new("History", "history", AppRoutes.History)
     ];
 
+    private IEnumerable<NavItem> VisibleItems => !IsAuthenticated
+        ? []
+        : IsAdmin
+            ? [new("Admin Dashboard", "dashboard", AppRoutes.AdminDashboard), new("Notifications", "notifications", AppRoutes.Notifications), new("Management Analytics", "analytics", "/management/analytics")]
+            : [.. Items, new("Notifications", "notifications", AppRoutes.Notifications)];
+
     /// <summary>Only affects screens below "md", where the sidebar is a drawer.</summary>
     [Parameter]
     public bool IsOpen { get; set; }
+
+    [Parameter]
+    public bool IsAuthenticated { get; set; }
+
+    [Parameter]
+    public bool IsAdmin { get; set; }
 
     [Parameter]
     public EventCallback OnClose { get; set; }

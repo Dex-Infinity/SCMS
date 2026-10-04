@@ -1,5 +1,6 @@
 @page "/complaints"
 @attribute [Authorize]
+@attribute [Authorize(Roles = "Student,Admin")]
 @inject IMyComplaintsService Complaints
 @inject ILogger<MyComplaints> Logger
 

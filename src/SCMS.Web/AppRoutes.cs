@@ -15,6 +15,7 @@ public static class AppRoutes
     public const string Settings = "/settings";                
     public const string Profile = "/profile";                  
     public const string Search = "/search";                    
+    public const string AdminDashboard = "/admin/dashboard";
 
     public static string ComplaintDetails(int id) => $"{Complaints}/{id}";
 }

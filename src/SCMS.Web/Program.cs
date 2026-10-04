@@ -7,6 +7,10 @@ using Microsoft.Extensions.Options;
 using SCMS.Web;
 using SCMS.Web.Components;
 using SCMS.Web.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Net.Http.Json;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +30,21 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = false;
     });
 builder.Services.AddAuthorization();
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.AccessDeniedPath = "/access-denied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+    });
+builder.Services.AddHttpClient();
+builder.Services.AddScoped(sp => new HttpClient
+{
+    BaseAddress = new Uri(builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5000/")
+});
+builder.Services.AddScoped<ScmsApiClient>();
 
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection(ApiSettings.SectionName));
 builder.Services.AddHttpClient("SCMS.Api", (services, client) =>
@@ -57,6 +76,8 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -75,6 +96,13 @@ app.MapPost("/auth/login", async (HttpContext context, IHttpClientFactory client
 
     var authenticated = await response.Content.ReadFromJsonAsync<ApiAuthResponse>();
     if (authenticated is null || string.IsNullOrWhiteSpace(authenticated.Token))
+app.MapPost("/account/login", async (HttpContext context, IHttpClientFactory clientFactory, IConfiguration configuration) =>
+{
+    var form = await context.Request.ReadFormAsync();
+    var email = form["email"].ToString();
+    var password = form["password"].ToString();
+    var returnUrl = form["returnUrl"].ToString();
+    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
     {
         return Results.Redirect("/login?error=1");
     }
@@ -115,6 +143,18 @@ app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory cli
     if (authenticated is null || string.IsNullOrWhiteSpace(authenticated.Token))
     {
         return Results.Redirect("/signup?error=1");
+    var api = clientFactory.CreateClient();
+    api.BaseAddress = new Uri(configuration["Api:BaseUrl"] ?? "http://localhost:5000/");
+    using var response = await api.PostAsJsonAsync("api/auth/login", new { Email = email, Password = password });
+    if (!response.IsSuccessStatusCode)
+    {
+        return Results.Redirect("/login?error=1");
+    }
+
+    var result = await response.Content.ReadFromJsonAsync<SCMS.Web.Models.LoginResponse>();
+    if (result is null || string.IsNullOrWhiteSpace(result.Token))
+    {
+        return Results.Redirect("/login?error=1");
     }
 
     var claims = new List<Claim>
@@ -134,6 +174,22 @@ app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory cli
 });
 
 app.MapPost("/auth/logout", async (HttpContext context) =>
+        new(ClaimTypes.Name, result.FullName),
+        new(ClaimTypes.Email, result.Email),
+        new("access_token", result.Token)
+    };
+    claims.AddRange(result.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+    await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity),
+        new AuthenticationProperties { ExpiresUtc = result.ExpiresAt });
+
+    var destination = Uri.IsWellFormedUriString(returnUrl, UriKind.Relative) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
+        ? returnUrl
+        : result.Roles.Contains("Admin", StringComparer.OrdinalIgnoreCase) ? AppRoutes.AdminDashboard : AppRoutes.Dashboard;
+    return Results.Redirect(destination);
+});
+
+app.MapPost("/account/logout", async (HttpContext context) =>
 {
     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Redirect("/login");
