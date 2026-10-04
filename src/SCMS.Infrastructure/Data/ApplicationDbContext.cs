@@ -113,7 +113,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasIndex(e => e.ComplaintId);
 
             entity.HasOne<Complaint>()
-                .WithMany()
+                .WithMany(complaint => complaint.Attachments)
                 .HasForeignKey(e => e.ComplaintId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

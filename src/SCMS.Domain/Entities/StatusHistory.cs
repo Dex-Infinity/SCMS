@@ -1,4 +1,5 @@
 using SCMS.Domain.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SCMS.Domain.Entities;
 
@@ -24,18 +25,21 @@ public class StatusHistory
 
     // Backward-compatible aliases used by the complaint API. EF Core maps the
     // underlying transition fields above, so these do not change the schema.
+    [NotMapped]
     public ComplaintStatus Status
     {
         get => ToStatus;
         set => ToStatus = value;
     }
 
+    [NotMapped]
     public string? Comment
     {
         get => Note;
         set => Note = value;
     }
 
+    [NotMapped]
     public string ChangedBy
     {
         get => ChangedByUserId;
