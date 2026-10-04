@@ -17,6 +17,8 @@
         <TopNavbar UserName="@(_user?.DisplayName ?? string.Empty)"
                    IsAuthenticated="_isAuthenticated"
                    UnreadNotifications="@_unreadNotifications"
+                   IsLoadingUser="_userLoading"
+                   IsLoadingNotifications="_unreadCountLoading"
                    OnMenuClick="OpenSidebar" />
 
         <main id="main-content" class="flex-1 p-margin-mobile md:p-xl">
@@ -41,6 +43,8 @@
     private bool _isAuthenticated;
     private bool _isAdmin;
     private bool _sidebarOpen;
+    private bool _userLoading;
+    private bool _unreadCountLoading;
 
     protected override async Task OnInitializedAsync()
     {
@@ -54,6 +58,7 @@
             return;
         }
 
+        _userLoading = true;
         try
         {
             _user = await Users.GetAsync();
@@ -68,7 +73,12 @@
             Logger.LogWarning(ex, "Could not fetch current user profile from service, falling back to identity");
             _user = new CurrentUser(principal.Identity?.Name ?? "Account");
         }
+        finally
+        {
+            _userLoading = false;
+        }
 
+        _unreadCountLoading = true;
         try
         {
             _unreadNotifications = await Api.GetUnreadCountAsync();
@@ -76,6 +86,10 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Could not load the unread notification count");
+        }
+        finally
+        {
+            _unreadCountLoading = false;
         }
     }
 

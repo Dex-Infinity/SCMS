@@ -5,17 +5,20 @@
 
 <PageTitle>Notifications - SCMS Portal</PageTitle>
 
-<div class="mx-auto flex w-full max-w-[900px] flex-col gap-xl">
+<div class="mx-auto flex w-full max-w-[900px] flex-col gap-xl" aria-busy="@(_loading || _busy || _loadingTarget || _loadingDetails)">
     <header class="flex flex-col justify-between gap-md sm:flex-row sm:items-end">
         <div><h1 tabindex="-1" class="text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">Notifications</h1><p class="mt-2 text-body-md text-on-surface-variant">Updates about complaint assignments and status changes.</p></div>
         <div class="flex flex-wrap items-center gap-md">
             <label class="inline-flex items-center gap-2 text-label-sm text-on-surface-variant">
-                <input type="checkbox" checked="@_unreadOnly" @onchange="ChangeUnreadFilterAsync" />
+                <input type="checkbox" checked="@_unreadOnly" disabled="@_loading" @onchange="ChangeUnreadFilterAsync" />
                 Unread only
             </label>
             @if (_notifications?.Any(item => !item.IsRead) == true)
             {
-                <button type="button" class="btn btn-secondary shrink-0" disabled="@_busy" @onclick="MarkAllReadAsync"><Icon Name="done_all" />Mark all as read</button>
+                <button type="button" class="btn btn-secondary shrink-0" disabled="@_busy" @onclick="MarkAllReadAsync">
+                    @if (_busy) { <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" /><span>Updating...</span> }
+                    else { <Icon Name="done_all" /><span>Mark all as read</span> }
+                </button>
             }
         </div>
     </header>
@@ -34,7 +37,10 @@
                         <label class="field-label" for="notification-user-id">Target user ID</label>
                         <input id="notification-user-id" class="field-input" @bind="_lookupUserId" autocomplete="off" />
                     </div>
-                    <button type="button" class="btn btn-secondary self-end" disabled="@_busy" @onclick="LoadUserNotificationsAsync">Load user's notifications</button>
+                    <button type="button" class="btn btn-secondary self-end" disabled="@(_busy || _loadingTarget)" @onclick="LoadUserNotificationsAsync">
+                        @if (_loadingTarget) { <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" /><span>Loading...</span> }
+                        else { <span>Load user's notifications</span> }
+                    </button>
                 </div>
                 <EditForm Model="_adminDraft" OnValidSubmit="CreateNotificationAsync" class="grid grid-cols-1 gap-md md:grid-cols-2">
                     <DataAnnotationsValidator />
@@ -58,9 +64,16 @@
                         <label class="field-label" for="new-notification-complaint">Complaint ID <span class="text-outline">(optional)</span></label>
                         <InputNumber id="new-notification-complaint" class="field-input" @bind-Value="_adminDraft.ComplaintId" min="1" />
                     </div>
-                    <button type="submit" class="btn btn-primary self-end" disabled="@_busy">Create notification</button>
+                    <button type="submit" class="btn btn-primary self-end" disabled="@_busy">
+                        @if (_busy) { <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" /><span>Saving...</span> }
+                        else { <span>Create notification</span> }
+                    </button>
                 </EditForm>
-                @if (_targetNotifications is not null)
+                @if (_loadingTarget)
+                {
+                    <p class="text-body-sm text-on-surface-variant" role="status">Loading notifications for this account...</p>
+                }
+                else if (_targetNotifications is not null)
                 {
                     <div class="divide-y divide-surface-variant border-y border-surface-variant">
                         @if (_targetNotifications.Count == 0)
@@ -71,8 +84,11 @@
                         {
                             <div @key="notification.Id" class="flex flex-wrap items-center gap-md py-sm">
                                 <span class="min-w-0 flex-1 text-body-sm text-on-surface">@notification.Title · #@notification.Id</span>
-                                <button type="button" class="text-label-sm text-primary hover:underline" @onclick="() => LoadDetailsAsync(notification.Id)">Details</button>
-                                <button type="button" class="icon-btn text-error" title="Delete notification" aria-label="Delete notification @notification.Id" disabled="@_busy" @onclick="() => DeleteNotificationAsync(notification)"><Icon Name="delete" /></button>
+                                <button type="button" class="text-label-sm text-primary hover:underline disabled:opacity-50" disabled="@_loadingDetails" @onclick="() => LoadDetailsAsync(notification.Id)">Details</button>
+                                <button type="button" class="icon-btn text-error" title="Delete notification" aria-label="Delete notification @notification.Id" disabled="@_busy" @onclick="() => DeleteNotificationAsync(notification)">
+                                    @if (_busy) { <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" /> }
+                                    else { <Icon Name="delete" /> }
+                                </button>
                             </div>
                         }
                     </div>
@@ -81,7 +97,15 @@
         </Authorized>
     </AuthorizeView>
 
-    @if (_selectedNotification is not null)
+    @if (_loadingDetails)
+    {
+        <p class="text-body-sm text-on-surface-variant" role="status">Loading notification details...</p>
+    }
+    else if (_detailError is not null)
+    {
+        <p class="text-body-sm text-error" role="alert">@_detailError</p>
+    }
+    else if (_selectedNotification is not null)
     {
         <section class="flex flex-col gap-2 border-b border-surface-variant pb-lg" aria-labelledby="notification-detail-heading">
             <div class="flex items-center justify-between gap-md">
@@ -101,7 +125,7 @@
     {
         <div class="flex flex-col items-start gap-md rounded-xl bg-error-container p-lg text-on-error-container sm:flex-row sm:items-center sm:justify-between" role="alert">
             <div><h2 class="text-title-md">Notifications couldn't be loaded</h2><p class="text-body-md">@_error</p></div>
-            <button type="button" class="btn btn-primary shrink-0" @onclick="LoadAsync">Try again</button>
+            <button type="button" class="btn btn-primary shrink-0" disabled="@_loading" @onclick="LoadAsync">Try again</button>
         </div>
     }
     else if (_notifications is null)
@@ -139,10 +163,13 @@
                             {
                                 <a href="@AppRoutes.ComplaintDetails(notification.ComplaintId.Value)" class="text-label-sm text-primary hover:underline">View complaint #@notification.ComplaintId</a>
                             }
-                            <button type="button" class="text-label-sm text-primary hover:underline" @onclick="() => LoadDetailsAsync(notification.Id)">Details</button>
+                            <button type="button" class="text-label-sm text-primary hover:underline disabled:opacity-50" disabled="@_loadingDetails" @onclick="() => LoadDetailsAsync(notification.Id)">Details</button>
                             @if (!notification.IsRead)
                             {
-                                <button type="button" class="text-label-sm text-primary hover:underline disabled:opacity-50" disabled="@_busy" @onclick="() => MarkReadAsync(notification)">Mark as read</button>
+                                <button type="button" class="text-label-sm text-primary hover:underline disabled:opacity-50" disabled="@_busy" @onclick="() => MarkReadAsync(notification)">
+                                    @if (_busy) { <span>Updating...</span> }
+                                    else { <span>Mark as read</span> }
+                                </button>
                             }
                         </div>
                     </div>
@@ -164,18 +191,27 @@
     private string? _error;
     private string? _notice;
     private bool _busy;
+    private bool _loading;
+    private bool _loadingTarget;
+    private bool _loadingDetails;
+    private string? _detailError;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
     private async Task LoadAsync()
     {
+        if (_loading) return;
+
+        _loading = true;
         _error = null;
+        _notifications = null;
         try { _notifications = (await Api.GetNotificationsAsync(_unreadOnly)).ToList(); }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to load notifications");
             _error = ex is UnauthorizedAccessException ? ex.Message : "Check the API connection and try again.";
         }
+        finally { _loading = false; }
     }
 
     private async Task ChangeUnreadFilterAsync(ChangeEventArgs args)
@@ -222,7 +258,11 @@
 
     private async Task LoadDetailsAsync(int id)
     {
-        _adminError = null;
+        if (_loadingDetails) return;
+
+        _loadingDetails = true;
+        _detailError = null;
+        _selectedNotification = null;
         try
         {
             _selectedNotification = await Api.GetNotificationAsync(id);
@@ -230,8 +270,9 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to load notification {NotificationId}", id);
-            _adminError = "Notification details could not be loaded.";
+            _detailError = "Notification details could not be loaded.";
         }
+        finally { _loadingDetails = false; }
     }
 
     private async Task LoadUserNotificationsAsync()
@@ -244,7 +285,8 @@
 
         _adminError = null;
         _adminNotice = null;
-        _busy = true;
+        _loadingTarget = true;
+        _targetNotifications = null;
         try
         {
             _targetNotifications = (await Api.GetNotificationsForUserAsync(_lookupUserId.Trim())).ToList();
@@ -254,7 +296,7 @@
             Logger.LogError(ex, "Failed to load notifications for target user");
             _adminError = "Notifications for that account could not be loaded.";
         }
-        finally { _busy = false; }
+        finally { _loadingTarget = false; }
     }
 
     private async Task CreateNotificationAsync()

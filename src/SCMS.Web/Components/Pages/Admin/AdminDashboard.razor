@@ -19,7 +19,7 @@
             <button type="button" class="btn btn-primary shrink-0" @onclick="LoadAsync">Try again</button>
         </div>
     }
-    else if (_complaints is null)
+    else if (_loading || _complaints is null)
     {
         <div class="flex flex-col gap-lg" role="status" aria-label="Loading complaint queue">
             <div class="grid grid-cols-1 gap-lg md:grid-cols-3"><div class="h-32 animate-pulse rounded-xl bg-surface-container"></div><div class="h-32 animate-pulse rounded-xl bg-surface-container"></div><div class="h-32 animate-pulse rounded-xl bg-surface-container"></div></div>
@@ -180,6 +180,7 @@
     private readonly Dictionary<int, string> _statusSelections = [];
     private readonly Dictionary<int, ComplaintAssignment> _assignments = [];
     private bool _loadFailed;
+    private bool _loading;
     private string _search = string.Empty;
     private int? _departmentFilter;
     private string _statusFilter = string.Empty;
@@ -197,8 +198,12 @@
 
     private async Task LoadAsync()
     {
+        if (_loading) return;
+
         _loadFailed = false;
         _actionError = null;
+        _loading = true;
+        _complaints = null;
         try
         {
             _departments = await DepartmentCatalog.GetAllAsync();
@@ -212,6 +217,10 @@
         {
             Logger.LogError(ex, "Failed to load the administrator complaint queue");
             _loadFailed = true;
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 

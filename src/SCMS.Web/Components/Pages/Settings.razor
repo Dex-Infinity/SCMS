@@ -10,7 +10,7 @@
 
     @if (_error is not null && _model is null)
     {
-        <div class="flex items-center justify-between gap-md rounded-xl bg-error-container p-lg text-on-error-container" role="alert"><p>@_error</p><button type="button" class="btn btn-primary" @onclick="LoadAsync">Try again</button></div>
+        <div class="flex items-center justify-between gap-md rounded-xl bg-error-container p-lg text-on-error-container" role="alert"><p>@_error</p><button type="button" class="btn btn-primary" disabled="@_loading" @onclick="LoadAsync">Try again</button></div>
     }
     else if (_model is null)
     {
@@ -42,8 +42,8 @@
             </div>
 
             <div class="flex flex-col-reverse gap-md border-t border-outline-variant/50 pt-lg sm:flex-row sm:justify-end">
-                <button type="button" class="btn btn-secondary" @onclick="LoadAsync" disabled="@_saving">Discard changes</button>
-                <button type="submit" class="btn btn-primary" disabled="@_saving">@if (_saving) { <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" /><span>Saving</span> } else { <Icon Name="save" /><span>Save settings</span> }</button>
+                <button type="button" class="btn btn-secondary" @onclick="LoadAsync" disabled="@(_saving || _loading)">Discard changes</button>
+                <button type="submit" class="btn btn-primary" disabled="@(_saving || _loading)">@if (_saving) { <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" /><span>Saving</span> } else { <Icon Name="save" /><span>Save settings</span> }</button>
             </div>
         </EditForm>
     }
@@ -52,6 +52,7 @@
 @code {
     private SettingsFormModel? _model;
     private bool _saving;
+    private bool _loading;
     private bool _saved;
     private string? _error;
 
@@ -59,6 +60,10 @@
 
     private async Task LoadAsync()
     {
+        if (_loading || _saving) return;
+
+        _loading = true;
+        _model = null;
         _error = null;
         _saved = false;
         try
@@ -77,10 +82,13 @@
             Logger.LogError(ex, "Failed to load settings");
             _error = ex is UnauthorizedAccessException ? ex.Message : "Check the API connection and try again.";
         }
+        finally { _loading = false; }
     }
 
     private async Task SaveAsync()
     {
+        if (_saving || _loading || _model is null) return;
+
         _saving = true;
         _error = null;
         _saved = false;
