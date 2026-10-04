@@ -64,9 +64,9 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 - [ ] Add the ER diagram to `docs/er-diagram.png`
 
 **Collins Edumadze Egyir**
-- [ ] Define relationships between Complaints, Students, and Departments
-- [ ] Manage migrations as the schema evolves
-- [ ] Optimize queries needed for the reporting/analytics feature
+- [x] Define relationships between Complaints, Students, and Departments
+- [x] Manage migrations as the schema evolves
+- [x] Optimize queries needed for the reporting/analytics feature
 
 ## DevOps Engineer
 
