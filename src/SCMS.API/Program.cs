@@ -13,6 +13,24 @@ using SCMS.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var deploymentOverrides = new Dictionary<string, string?>();
+MapEnvironmentAlias("Jwt:Key", "SCMS_JWT_KEY");
+MapEnvironmentAlias("Attachments:StoragePath", "SCMS_UPLOAD_PATH");
+MapEnvironmentAlias("Seed:AdminEmail", "SCMS_ADMIN_EMAIL");
+MapEnvironmentAlias("Seed:AdminPassword", "SCMS_ADMIN_PASSWORD");
+MapEnvironmentAlias("Seed:AdminUserName", "SCMS_ADMIN_USERNAME");
+MapEnvironmentAlias("Seed:AdminFullName", "SCMS_ADMIN_FULLNAME");
+builder.Configuration.AddInMemoryCollection(deploymentOverrides);
+
+void MapEnvironmentAlias(string configurationKey, string environmentKey)
+{
+    var configuredValue = builder.Configuration[configurationKey];
+    if (string.IsNullOrWhiteSpace(configuredValue) || configuredValue.StartsWith("#{", StringComparison.Ordinal))
+    {
+        deploymentOverrides[configurationKey] = builder.Configuration[environmentKey];
+    }
+}
+
 // Add services to the container.
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
@@ -84,17 +102,64 @@ builder.Services.AddSwaggerGen(options =>
 
 // Configure EF Core DbContext with SQL Server
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Prefer .NET's connection-string setting, then Render's PostgreSQL URL.
+var connectionString = builder.Configuration["DATABASE_URL"];
+if (string.IsNullOrWhiteSpace(connectionString) || connectionString.StartsWith("#{", StringComparison.Ordinal))
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+}
+if (string.IsNullOrWhiteSpace(connectionString) || connectionString.StartsWith("#{", StringComparison.Ordinal))
+{
+    connectionString = builder.Configuration["SCMS_DB_CONNECTION_STRING"];
+}
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    connectionString =
-        "Server=sqlserver,1433;Database=SCMSDb;User Id=sa;Password=SCMS@SqlServer2026!;TrustServerCertificate=True;MultipleActiveResultSets=True";
+    throw new InvalidOperationException("Configure ConnectionStrings__DefaultConnection or DATABASE_URL with a PostgreSQL connection string before starting the API.");
 }
+
+connectionString = NormalizePostgresConnectionString(connectionString);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseSqlServer(connectionString);
+    options.UseNpgsql(connectionString);
 });
+
+static string NormalizePostgresConnectionString(string value)
+{
+    if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        || (uri.Scheme != "postgres" && uri.Scheme != "postgresql"))
+    {
+        return value;
+    }
+
+    var credentials = uri.UserInfo.Split(':', 2);
+    var database = Uri.UnescapeDataString(uri.AbsolutePath.Trim('/'));
+    if (credentials.Length != 2 || string.IsNullOrWhiteSpace(database))
+    {
+        throw new InvalidOperationException("DATABASE_URL must include a PostgreSQL username, password, host, and database name.");
+    }
+
+    var postgresConnection = new Npgsql.NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.IsDefaultPort ? 5432 : uri.Port,
+        Database = database,
+        Username = Uri.UnescapeDataString(credentials[0]),
+        Password = Uri.UnescapeDataString(credentials[1]),
+        SslMode = Npgsql.SslMode.Require
+    };
+
+    var sslMode = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
+        .Select(option => option.Split('=', 2))
+        .FirstOrDefault(parts => parts.Length == 2 && parts[0].Equals("sslmode", StringComparison.OrdinalIgnoreCase));
+    if (sslMode is { Length: 2 } && Enum.TryParse<Npgsql.SslMode>(Uri.UnescapeDataString(sslMode[1]), true, out var parsedSslMode))
+    {
+        postgresConnection.SslMode = parsedSslMode;
+    }
+
+    return postgresConnection.ConnectionString;
+}
 
 // Configure ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -111,7 +176,13 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 
 // Configure JWT Bearer authentication
 var jwtSection = builder.Configuration.GetSection("Jwt");
-builder.Services.Configure<JwtSettings>(jwtSection);
+builder.Services.AddOptions<JwtSettings>()
+    .Bind(jwtSection)
+    .Validate(settings => System.Text.Encoding.UTF8.GetByteCount(settings.Key) >= 32
+        && !string.IsNullOrWhiteSpace(settings.Issuer)
+        && !string.IsNullOrWhiteSpace(settings.Audience),
+        "Configure a JWT key of at least 32 bytes, issuer, and audience.")
+    .ValidateOnStart();
 
 var jwtSettings = jwtSection.Get<JwtSettings>() ?? new JwtSettings();
 builder.Services.AddAuthentication(options =>
@@ -162,13 +233,14 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("AllowFrontend");
 
 // Ensure Database & Tables are created on app startup and seed roles/admin/students
+// Ensure Database & Tables are created on app startup
+// Ensure Database & Tables are created on app startup and seed roles/admin
+// Apply database migrations and seed configured roles/admin before serving requests.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    try
-    {
-        var dbContext = services.GetRequiredService<ApplicationDbContext>();
-        dbContext.Database.EnsureCreated();
+    var dbContext = services.GetRequiredService<ApplicationDbContext>();
+    await dbContext.Database.MigrateAsync();
 
         var initializer = services.GetRequiredService<IDbInitializer>();
         await initializer.InitializeAsync();
@@ -177,6 +249,8 @@ using (var scope = app.Services.CreateScope())
     {
         app.Logger.LogWarning("SQL Server initialization notice: {Message}.", ex.Message);
     }
+    var initializer = services.GetRequiredService<IDbInitializer>();
+    await initializer.InitializeAsync();
 }
 
 // Enable Swagger UI for development and testing

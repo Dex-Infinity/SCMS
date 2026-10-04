@@ -122,6 +122,22 @@ public class NotificationsController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
+        if (_context != null)
+        {
+            var isIdentityUser = await _context.Users.AnyAsync(user => user.Id == dto.UserId);
+            var isStudent = int.TryParse(dto.UserId, out var studentId)
+                && await _context.Students.AnyAsync(student => student.Id == studentId);
+            if (!isIdentityUser && !isStudent)
+            {
+                return BadRequest(new { message = "The target user was not found." });
+            }
+
+            if (dto.ComplaintId.HasValue && !await _context.Complaints.AnyAsync(complaint => complaint.Id == dto.ComplaintId.Value))
+            {
+                return BadRequest(new { message = "The complaint was not found." });
+            }
+        }
+
         var created = await _notificationService.CreateNotificationAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
@@ -157,7 +173,23 @@ public class NotificationsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<NotificationResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByUserId(string userId, [FromQuery] bool? unreadOnly = null)
     {
-        var notifications = await _notificationService.GetNotificationsForUserAsync(userId, null, unreadOnly);
+        int? studentId = int.TryParse(userId, out var parsedStudentId) ? parsedStudentId : null;
+        if (!studentId.HasValue && _context != null)
+        {
+            var email = await _context.Users
+                .Where(user => user.Id == userId)
+                .Select(user => user.Email)
+                .FirstOrDefaultAsync();
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                studentId = await _context.Students
+                    .Where(student => student.Email == email)
+                    .Select(student => (int?)student.Id)
+                    .FirstOrDefaultAsync();
+            }
+        }
+
+        var notifications = await _notificationService.GetNotificationsForUserAsync(userId, studentId, unreadOnly);
         return Ok(notifications);
     }
 

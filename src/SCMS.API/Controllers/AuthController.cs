@@ -19,7 +19,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
-    // POST api/auth/register - Register a new user (student)
+    // POST api/auth/register - Register a new student.
     [HttpPost("register")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status201Created)]

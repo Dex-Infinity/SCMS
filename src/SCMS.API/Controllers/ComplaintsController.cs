@@ -98,6 +98,17 @@ public class ComplaintsController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
+        if (User.IsInRole("Student"))
+        {
+            var studentIdClaim = User.FindFirstValue("student_id");
+            if (!int.TryParse(studentIdClaim, out var studentId))
+            {
+                return Forbid();
+            }
+
+            dto.StudentId = studentId;
+        }
+
         var created = await _complaintService.CreateComplaintAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }

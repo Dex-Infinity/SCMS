@@ -1,0 +1,117 @@
+@page "/settings"
+@attribute [Authorize]
+@inject ScmsApiClient Api
+@inject ILogger<Settings> Logger
+
+<PageTitle>Settings - SCMS Portal</PageTitle>
+
+<div class="mx-auto flex w-full max-w-[760px] flex-col gap-xl">
+    <header><h1 tabindex="-1" class="text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">Settings</h1><p class="mt-2 text-body-md text-on-surface-variant">Choose how you receive updates and use the portal.</p></header>
+
+    @if (_error is not null && _model is null)
+    {
+        <div class="flex items-center justify-between gap-md rounded-xl bg-error-container p-lg text-on-error-container" role="alert"><p>@_error</p><button type="button" class="btn btn-primary" disabled="@_loading" @onclick="LoadAsync">Try again</button></div>
+    }
+    else if (_model is null)
+    {
+        <div role="status" aria-label="Loading settings" class="h-80 animate-pulse rounded-xl bg-surface-container"></div>
+    }
+    else
+    {
+        @if (_saved) { <p class="rounded-lg bg-primary-fixed px-md py-sm text-body-md text-on-primary-fixed" role="status">Your settings were saved.</p> }
+        @if (_error is not null) { <p class="rounded-lg bg-error-container px-md py-sm text-body-md text-on-error-container" role="alert">@_error</p> }
+        <EditForm Model="_model" OnValidSubmit="SaveAsync" class="flex flex-col gap-xl rounded-xl border border-outline-variant bg-surface-container-lowest p-lg shadow-sm md:p-xl" aria-busy="@_saving">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="rounded-lg bg-error-container p-md text-body-sm text-on-error-container" />
+
+            <fieldset class="flex flex-col gap-md">
+                <legend class="text-title-md text-on-surface">Notifications</legend>
+                <label class="flex min-h-12 items-center justify-between gap-lg border-b border-outline-variant/50 py-md">
+                    <span><span class="block text-label-md text-on-surface">Email updates</span><span class="mt-1 block text-caption text-on-surface-variant">Receive complaint progress by email.</span></span>
+                    <InputCheckbox class="size-5 accent-primary" @bind-Value="_model.EmailNotifications" />
+                </label>
+                <label class="flex min-h-12 items-center justify-between gap-lg py-md">
+                    <span><span class="block text-label-md text-on-surface">SMS updates</span><span class="mt-1 block text-caption text-on-surface-variant">Receive important complaint updates by text.</span></span>
+                    <InputCheckbox class="size-5 accent-primary" @bind-Value="_model.SmsNotifications" />
+                </label>
+            </fieldset>
+
+            <div class="grid grid-cols-1 gap-lg border-t border-outline-variant/50 pt-lg sm:grid-cols-2">
+                <div class="flex flex-col gap-2"><label class="field-label" for="settings-theme">Theme</label><InputSelect id="settings-theme" class="field-input" @bind-Value="_model.Theme"><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></InputSelect><ValidationMessage For="() => _model.Theme" /></div>
+                <div class="flex flex-col gap-2"><label class="field-label" for="settings-language">Language</label><InputSelect id="settings-language" class="field-input" @bind-Value="_model.Language"><option value="en">English</option><option value="fr">French</option></InputSelect><ValidationMessage For="() => _model.Language" /></div>
+            </div>
+
+            <div class="flex flex-col-reverse gap-md border-t border-outline-variant/50 pt-lg sm:flex-row sm:justify-end">
+                <button type="button" class="btn btn-secondary" @onclick="LoadAsync" disabled="@(_saving || _loading)">Discard changes</button>
+                <button type="submit" class="btn btn-primary" disabled="@(_saving || _loading)">@if (_saving) { <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" /><span>Saving</span> } else { <Icon Name="save" /><span>Save settings</span> }</button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private SettingsFormModel? _model;
+    private bool _saving;
+    private bool _loading;
+    private bool _saved;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (_loading || _saving) return;
+
+        _loading = true;
+        _model = null;
+        _error = null;
+        _saved = false;
+        try
+        {
+            var settings = await Api.GetSettingsAsync();
+            _model = new SettingsFormModel
+            {
+                EmailNotifications = settings.EmailNotifications,
+                SmsNotifications = settings.SmsNotifications,
+                Theme = settings.Theme,
+                Language = settings.Language
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load settings");
+            _error = ex is UnauthorizedAccessException ? ex.Message : "Check the API connection and try again.";
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _loading || _model is null) return;
+
+        _saving = true;
+        _error = null;
+        _saved = false;
+        try
+        {
+            var result = await Api.UpdateSettingsAsync(new SettingsUpdate
+            {
+                EmailNotifications = _model!.EmailNotifications,
+                SmsNotifications = _model.SmsNotifications,
+                Theme = _model.Theme,
+                Language = _model.Language
+            });
+            _model.Theme = result.Theme;
+            _model.Language = result.Language;
+            _model.EmailNotifications = result.EmailNotifications;
+            _model.SmsNotifications = result.SmsNotifications;
+            _saved = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save settings");
+            _error = "Your settings could not be saved. Check the API connection and try again.";
+        }
+        finally { _saving = false; }
+    }
+}

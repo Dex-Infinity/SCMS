@@ -1,5 +1,7 @@
 @page "/submit-complaint"
+@attribute [Authorize(Roles = "Student,Admin")]
 @inject IComplaintSubmissionService Submission
+@inject IDepartmentCatalogService DepartmentCatalog
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject ILogger<SubmitComplaint> Logger
@@ -19,6 +21,10 @@
                 We've received your complaint. Keep this reference number to follow its progress.
             </p>
             <p class="mt-md inline-block rounded-lg bg-surface-container-low px-md py-sm text-title-md tracking-wide text-primary">@_reference</p>
+            @if (_attachmentWarning is not null)
+            {
+                <p class="mx-auto mt-md max-w-prose rounded-lg bg-tertiary-fixed px-md py-sm text-body-md text-on-tertiary-fixed" role="alert">@_attachmentWarning</p>
+            }
 
             <div class="mt-xl flex flex-col justify-center gap-md sm:flex-row">
                 <button type="button" class="btn btn-secondary" @onclick="StartNew">Submit another complaint</button>
@@ -35,7 +41,19 @@
             </p>
         </div>
 
-        <div class="overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm">
+        @if (_departmentError is not null)
+        {
+            <p class="mb-lg rounded-lg bg-error-container px-md py-sm text-body-md text-on-error-container" role="alert">@_departmentError</p>
+        }
+        else if (_departmentsLoading)
+        {
+            <p class="mb-lg inline-flex items-center gap-2 text-body-sm text-on-surface-variant" role="status">
+                <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" />
+                Loading departments...
+            </p>
+        }
+
+        <div class="overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm" aria-busy="@_departmentsLoading">
             <StepIndicator Steps="_stepLabels" Current="CurrentStepNumber" />
 
             @if (_step == Step.Details)
@@ -46,25 +64,20 @@
 
                     <div class="grid grid-cols-1 gap-lg md:grid-cols-2">
                         <div class="flex flex-col gap-2">
-                            <label class="field-label" for="category">Category <span class="text-error" aria-hidden="true">*</span></label>
+                            <label class="field-label" for="department">Department <span class="text-error" aria-hidden="true">*</span></label>
                             <div class="relative">
-                                <InputSelect id="category" class="field-input appearance-none pr-10" @bind-Value="_model.Category" aria-required="true">
-                                    <option value="" disabled>Select a category</option>
-                                    @foreach (var category in ComplaintCategories.All)
+                                <InputSelect id="department" class="field-input appearance-none pr-10" @bind-Value="_model.DepartmentId" disabled="@(_departmentsLoading || _departments is null || _departments.Count == 0)" aria-required="true">
+                                    <option value="0" disabled>Select a department</option>
+                                    @foreach (var department in _departments ?? [])
                                     {
-                                        <option value="@category.Value">@category.Label</option>
+                                        <option value="@department.Id">@department.Name</option>
                                     }
                                 </InputSelect>
                                 <Icon Name="expand_more" Class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-outline" />
                             </div>
-                            <ValidationMessage For="() => _model.Category" />
+                            <ValidationMessage For="() => _model.DepartmentId" />
                         </div>
 
-                        <div class="flex flex-col gap-2">
-                            <label class="field-label" for="incident_date">Date of Incident (Optional)</label>
-                            <InputDate id="incident_date" class="field-input" @bind-Value="_model.IncidentDate" max="@_today" />
-                            <ValidationMessage For="() => _model.IncidentDate" />
-                        </div>
                     </div>
 
                     <div class="flex flex-col gap-lg">
@@ -85,6 +98,8 @@
                     <div class="flex flex-col gap-2">
                         <span class="field-label" id="documents-label">Supporting Documents (Optional)</span>
                         <FileDropzone Label="Upload supporting documents"
+                                      Hint="PDF, JPG, or PNG (Max. 5MB)"
+                                      MaxFileSizeBytes="5 * 1024 * 1024"
                                       CurrentFileCount="_files.Count"
                                       OnFilesSelected="AddFiles" />
 
@@ -110,9 +125,17 @@
 
                     <div class="mt-sm flex flex-col-reverse gap-md border-t border-outline-variant/30 pt-lg sm:flex-row sm:justify-end">
                         <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <span>Proceed to Review</span>
-                            <Icon Name="arrow_forward" Class="text-[18px]" />
+                        <button type="submit" class="btn btn-primary" disabled="@(_departmentsLoading || _departments is null || _departments.Count == 0)">
+                            @if (_departmentsLoading)
+                            {
+                                <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" />
+                                <span>Loading departments...</span>
+                            }
+                            else
+                            {
+                                <span>Proceed to Review</span>
+                                <Icon Name="arrow_forward" Class="text-[18px]" />
+                            }
                         </button>
                     </div>
                 </EditForm>
@@ -127,12 +150,8 @@
 
                     <dl class="divide-y divide-outline-variant/30 border-y border-outline-variant/30">
                         <div class="grid gap-1 py-md sm:grid-cols-3 sm:gap-lg">
-                            <dt class="text-label-sm text-secondary">Category</dt>
-                            <dd class="text-body-md text-on-surface sm:col-span-2">@ComplaintCategories.LabelFor(_model.Category)</dd>
-                        </div>
-                        <div class="grid gap-1 py-md sm:grid-cols-3 sm:gap-lg">
-                            <dt class="text-label-sm text-secondary">Date of incident</dt>
-                            <dd class="text-body-md text-on-surface sm:col-span-2">@(_model.IncidentDate?.ToString("MMMM d, yyyy") ?? "Not provided")</dd>
+                            <dt class="text-label-sm text-secondary">Department</dt>
+                            <dd class="text-body-md text-on-surface sm:col-span-2">@_departments?.FirstOrDefault(item => item.Id == _model.DepartmentId)?.Name</dd>
                         </div>
                         <div class="grid gap-1 py-md sm:grid-cols-3 sm:gap-lg">
                             <dt class="text-label-sm text-secondary">Subject</dt>
@@ -211,11 +230,36 @@
     private bool _submitting;
     private string? _submitError;
     private string? _reference;
+    private string? _attachmentWarning;
+    private IReadOnlyList<DepartmentOption>? _departments;
+    private string? _departmentError;
+    private bool _departmentsLoading = true;
 
     private ElementReference _heading;
     private bool _focusHeading;
 
     private int CurrentStepNumber => _step == Step.Details ? 1 : 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _departments = await DepartmentCatalog.GetAllAsync();
+            if (_departments.Count == 0)
+            {
+                _departmentError = "No departments are available for complaint submission.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load departments for complaint submission");
+            _departmentError = "Departments could not be loaded. Try again later.";
+        }
+        finally
+        {
+            _departmentsLoading = false;
+        }
+    }
 
     private void AddFiles(IReadOnlyList<IBrowserFile> incoming)
     {
@@ -257,6 +301,7 @@
         _model = new ComplaintFormModel();
         _files.Clear();
         _reference = null;
+        _attachmentWarning = null;
         _submitError = null;
         _formVersion++; // rebuilds the form so validation state and the file picker reset too
         MoveTo(Step.Details);
@@ -276,6 +321,7 @@
         {
             var result = await Submission.SubmitAsync(_model, _files);
             _reference = result.ReferenceNumber;
+            _attachmentWarning = result.AttachmentWarning;
             MoveTo(Step.Submitted);
         }
         catch (Exception ex)

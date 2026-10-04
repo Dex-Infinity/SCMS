@@ -24,11 +24,11 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 
 **Irene Darah-Mensah**
 - [x] Set up the Blazor project and shared layout (nav, auth-aware routing)
-- [ ] Build the admin dashboard (queue, filters, assign/update/resolve actions)
-- [ ] Build the notifications UI (in-app alerts for status changes)
-- [ ] Add client-side validation and loading/error states
-- [ ] Build the User Profile page (`/profile`)
-- [ ] Build the Settings page (`/settings`)
+- [x] Build the admin dashboard (queue, filters, assign/update/resolve actions)
+- [x] Build the notifications UI (in-app alerts for status changes)
+- [x] Add client-side validation and loading/error states
+- [x] Build the User Profile page (`/profile`)
+- [x] Build the Settings page (`/settings`)
 
 **Elikplim Yevu**
 - [x] Build the student complaint submission form (with file attachment upload)
@@ -46,9 +46,9 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 - [x] Run usability check with sample students/admins, revise flows
 
 **Quartey Obed Nii Kpakpa**
-- [ ] Map user flows for admins (review → assign → resolve)
-- [ ] Wireframe the student dashboard (submission form, tracking page)
-- [ ] Wireframe the management reporting dashboard
+- [x] Map user flows for admins (review → assign → resolve)
+- [x] Wireframe the student dashboard (submission form, tracking page)
+- [x] Wireframe the management reporting dashboard
 - [x] Build the design system (colors, typography, buttons, status badges), store exports in `docs/wireframes/`
 
 ## Database Engineer
@@ -66,13 +66,18 @@ Reference list of tasks per team member. For live tracking, mirror these as GitH
 **Collins Edumadze Egyir**
 - [x] Define relationships between Complaints, Students, and Departments
 - [ ] Manage migrations as the schema evolves
+- [x] Add the ER diagram to `docs/er-diagram.png`
+
+**Collins Edumadze Egyir**
+- [x] Define relationships between Complaints, Students, and Departments
+- [x] Manage migrations as the schema evolves
 - [x] Optimize queries needed for the reporting/analytics feature
 
 ## DevOps Engineer
 
 **Keren Asabea Acquaah**
-- [ ] Manage environment configuration (connection strings, secrets, dev/staging/prod settings)
-- [ ] Monitor open PRs and help resolve merge conflicts between teammates
+- [x] Manage environment configuration (connection strings, secrets, dev/staging/prod settings)
+- [x] Monitor open PRs and help resolve merge conflicts between teammates
 
 **Rushdan Delimwine Antiku**
 - [x] Set up the SQL Server environment and deployment

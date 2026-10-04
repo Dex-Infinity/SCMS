@@ -7,4 +7,5 @@ public sealed record ComplaintSummary(
     string Subject,
     string Category,
     DateTime SubmittedAt,
-    ComplaintStatus Status);
+    ComplaintStatus Status,
+    string Description = "");

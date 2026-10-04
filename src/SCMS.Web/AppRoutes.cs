@@ -7,14 +7,15 @@ namespace SCMS.Web;
 public static class AppRoutes
 {
     public const string Dashboard = "/dashboard";
-    public const string Complaints = "/complaints";            // (planned)
+    public const string Complaints = "/complaints";            
     public const string SubmitComplaint = "/submit-complaint";
-    public const string History = "/history";                  // (planned)
-    public const string Logout = "/logout";                    // (planned)
-    public const string Notifications = "/notifications";      // (planned)
-    public const string Settings = "/settings";                // (planned)
-    public const string Profile = "/profile";                  // (planned)
-    public const string Search = "/search";                    // (planned)
+    public const string History = "/history";                  
+    public const string Logout = "/logout";                    
+    public const string Notifications = "/notifications";      
+    public const string Settings = "/settings";                
+    public const string Profile = "/profile";                  
+    public const string Search = "/search";                    
+    public const string AdminDashboard = "/admin/dashboard";
 
-    public static string ComplaintDetails(int id) => $"{Complaints}/{id}"; // (planned)
+    public static string ComplaintDetails(int id) => $"{Complaints}/{id}";
 }

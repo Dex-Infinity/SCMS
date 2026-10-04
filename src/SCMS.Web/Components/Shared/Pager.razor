@@ -1,0 +1,55 @@
+<nav class="flex flex-col items-center justify-between gap-md border-t border-surface-variant px-lg py-md sm:flex-row" aria-label="Pagination">
+    <p class="text-label-sm text-on-surface-variant" role="status">@Summary</p>
+
+    @if (TotalPages > 1)
+    {
+        <div class="flex items-center gap-sm">
+            <button type="button" class="btn btn-secondary" disabled="@(Page <= 1)" @onclick="() => OnPageChange.InvokeAsync(Page - 1)">
+                <Icon Name="chevron_left" Class="text-[18px]" />
+                <span>Previous</span>
+            </button>
+            <span class="px-sm text-label-sm text-on-surface-variant">Page @Page of @TotalPages</span>
+            <button type="button" class="btn btn-secondary" disabled="@(Page >= TotalPages)" @onclick="() => OnPageChange.InvokeAsync(Page + 1)">
+                <span>Next</span>
+                <Icon Name="chevron_right" Class="text-[18px]" />
+            </button>
+        </div>
+    }
+</nav>
+
+@code {
+    /// <summary>Current page, starting at 1.</summary>
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    [Parameter]
+    public int PageSize { get; set; } = 10;
+
+    [Parameter]
+    public int TotalItems { get; set; }
+
+    /// <summary>Noun used in the summary, e.g. "complaints".</summary>
+    [Parameter]
+    public string ItemName { get; set; } = "results";
+
+    /// <summary>Raised with the new page number when Previous/Next is used.</summary>
+    [Parameter]
+    public EventCallback<int> OnPageChange { get; set; }
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalItems / (double)PageSize));
+
+    private string Summary
+    {
+        get
+        {
+            if (TotalItems == 0)
+            {
+                return "No " + ItemName;
+            }
+
+            var first = (Page - 1) * PageSize + 1;
+            var last = Math.Min(Page * PageSize, TotalItems);
+            return "Showing " + first + " to " + last + " of " + TotalItems + " " + ItemName;
+        }
+    }
+}

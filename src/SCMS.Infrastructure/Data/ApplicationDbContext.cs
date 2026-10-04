@@ -80,6 +80,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => new { e.StudentId, e.CreatedAt });
             entity.HasIndex(e => new { e.DepartmentId, e.Status });
+            // Indexes for common query patterns
+            entity.HasIndex(e => e.StudentId);                    // complaints by student
+            entity.HasIndex(e => e.Status);                       // complaints by status
+            entity.HasIndex(e => e.DepartmentId);                 // complaints by department
+            entity.HasIndex(e => new { e.StudentId, e.Status });  // student's complaints filtered by status
 
             entity.HasOne(e => e.Student)
                 .WithMany(s => s.Complaints)
@@ -95,6 +100,40 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .WithMany(a => a.AssignedComplaints)
                 .HasForeignKey(e => e.AssignedToId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Attachment Configuration
+        modelBuilder.Entity<Attachment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FileName).IsRequired().HasMaxLength(260);
+            entity.Property(e => e.StoredFileName).IsRequired().HasMaxLength(260);
+            entity.Property(e => e.ContentType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.UploadedBy).IsRequired().HasMaxLength(450);
+
+            // Index for fetching all attachments for a given complaint
+            entity.HasIndex(e => e.ComplaintId);
+
+            entity.HasOne<Complaint>()
+                .WithMany()
+                .HasForeignKey(e => e.ComplaintId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // StatusHistory Configuration
+        modelBuilder.Entity<StatusHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ChangedByUserId).IsRequired().HasMaxLength(450);
+            entity.Property(e => e.Note).HasMaxLength(500);
+
+            // Index for audit log queries (all history for a complaint)
+            entity.HasIndex(e => e.ComplaintId);
+
+            entity.HasOne(e => e.Complaint)
+                .WithMany(c => c.StatusHistories)
+                .HasForeignKey(e => e.ComplaintId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Notification Configuration
@@ -142,6 +181,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .WithMany(c => c.Attachments)
                 .HasForeignKey(e => e.ComplaintId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+
+            // Indexes: fetch all notifications for a user; filter unread; join to complaint
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.IsRead });
+            entity.HasIndex(e => e.ComplaintId);
         });
 
         // UserSetting Configuration
@@ -166,14 +211,5 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             new Department { Id = 3, Code = "AA", Name = "Academic Affairs", Description = "University Central Academic Affairs Office" }
         );
 
-        modelBuilder.Entity<Admin>().HasData(
-            new Admin { Id = 1, StaffId = "ADM-001", FullName = "Dr. Ama Serwaa", Email = "ama.serwaa@university.edu", DepartmentId = 1, Role = "DepartmentAdmin", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-            new Admin { Id = 2, StaffId = "ADM-002", FullName = "Prof. Kwame Mensah", Email = "kwame.mensah@university.edu", DepartmentId = 3, Role = "SuperAdmin", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
-        );
-
-        modelBuilder.Entity<Student>().HasData(
-            new Student { Id = 1, IndexNumber = "10982341", FullName = "Collins Edumadze", Email = "collins@student.university.edu", DepartmentId = 1, CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-            new Student { Id = 2, IndexNumber = "10982342", FullName = "Jessica Puozaa", Email = "jessica@student.university.edu", DepartmentId = 1, CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
-        );
     }
 }

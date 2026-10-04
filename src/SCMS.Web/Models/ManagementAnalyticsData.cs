@@ -1,19 +1,16 @@
 namespace SCMS.Web.Models;
 
-public enum DepartmentRating
-{
-    Excellent,
-    Average,
-    NeedsAttention
-}
-
-public sealed record DepartmentEfficiency(string Name, double AverageDays, DepartmentRating Rating);
-
 public sealed record ManagementAnalyticsData(
-    IReadOnlyList<ChartPoint> ComplaintsByCategory,
+    int Total,
+    int Pending,
+    int UnderReview,
+    int Assigned,
+    int Resolved,
+    int Rejected,
     double ResolutionRate,
-    double ResolutionRateChange,
-    IReadOnlyList<ChartPoint> ResolutionTrend,
-    IReadOnlyList<DepartmentEfficiency> Departments);
+    double AverageResolutionHours,
+    double MedianResolutionHours,
+    IReadOnlyList<ChartPoint> ByStatus,
+    IReadOnlyList<ChartPoint> ByDepartment);
 
 public sealed record ExportedReport(string FileName, string ContentType, byte[] Content);

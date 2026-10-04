@@ -1,0 +1,326 @@
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@inject ScmsApiClient Api
+@inject IDepartmentCatalogService DepartmentCatalog
+@inject ILogger<AdminDashboard> Logger
+
+<PageTitle>Administrator Dashboard - SCMS Portal</PageTitle>
+
+<div class="mx-auto flex w-full max-w-[1140px] flex-col gap-xl">
+    <header>
+        <h1 tabindex="-1" class="text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">Administrator Dashboard</h1>
+        <p class="mt-1 text-body-md text-on-surface-variant">Review, assign and resolve student complaints.</p>
+    </header>
+
+    @if (_loadFailed)
+    {
+        <div class="flex flex-col items-start gap-md rounded-xl bg-error-container p-lg text-on-error-container sm:flex-row sm:items-center sm:justify-between" role="alert">
+            <div class="flex items-start gap-3"><Icon Name="error" /><div><h2 class="text-title-md">The queue couldn't be loaded</h2><p class="text-body-md">Check the API connection and try again.</p></div></div>
+            <button type="button" class="btn btn-primary shrink-0" @onclick="LoadAsync">Try again</button>
+        </div>
+    }
+    else if (_loading || _complaints is null)
+    {
+        <div class="flex flex-col gap-lg" role="status" aria-label="Loading complaint queue">
+            <div class="grid grid-cols-1 gap-lg md:grid-cols-3"><div class="h-32 animate-pulse rounded-xl bg-surface-container"></div><div class="h-32 animate-pulse rounded-xl bg-surface-container"></div><div class="h-32 animate-pulse rounded-xl bg-surface-container"></div></div>
+            <div class="h-96 animate-pulse rounded-xl bg-surface-container"></div>
+        </div>
+    }
+    else
+    {
+        <section aria-label="Complaint summary" class="grid grid-cols-1 gap-lg sm:grid-cols-3">
+            <StatCard Label="Total complaints" Value="_complaints.Count" Icon="folder_open" />
+            <StatCard Label="Awaiting review" Value="PendingCount" Icon="pending_actions" IconClass="text-tertiary-container" AccentClass="border-l-4 border-l-tertiary-container" />
+            <StatCard Label="In review" Value="InReviewCount" Icon="rate_review" IconClass="text-primary" AccentClass="border-l-4 border-l-primary" />
+        </section>
+
+        @if (_notice is not null)
+        {
+            <p class="rounded-lg bg-primary-fixed px-md py-sm text-body-md text-on-primary-fixed" role="status">@_notice</p>
+        }
+
+        <section class="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm" aria-labelledby="queue-title" aria-busy="@(_busyId is not null)">
+            <div class="flex flex-col gap-md border-b border-outline-variant bg-surface-bright p-lg">
+                <div class="flex flex-wrap items-center justify-between gap-md">
+                    <div><h2 id="queue-title" class="text-title-md text-on-surface">Review Queue</h2><p class="mt-1 text-caption text-on-surface-variant">@FilteredComplaints.Count() complaints</p></div>
+                    @if (_actionError is not null)
+                    {
+                        <p class="text-body-sm text-error" role="alert">@_actionError</p>
+                    }
+                </div>
+                <div class="grid grid-cols-1 gap-sm sm:grid-cols-[minmax(12rem,1fr)_minmax(10rem,14rem)_minmax(10rem,14rem)_auto]">
+                    <div class="relative">
+                        <label for="queue-search" class="sr-only">Search complaints</label>
+                        <Icon Name="search" Class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-outline" />
+                        <input id="queue-search" class="field-input pl-10" type="search" placeholder="Search ID, student or subject" @bind="_search" @bind:event="oninput" />
+                    </div>
+                    <div class="relative">
+                        <label for="queue-department" class="sr-only">Filter by department</label>
+                        <select id="queue-department" class="field-input" value="@(_departmentFilter?.ToString() ?? string.Empty)" @onchange="DepartmentChangedAsync">
+                            <option value="">All departments</option>
+                            @foreach (var department in _departments ?? [])
+                            {
+                                <option value="@department.Id">@department.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="relative">
+                        <label for="queue-status" class="sr-only">Filter by status</label>
+                        <select id="queue-status" class="field-input" @bind="_statusFilter">
+                            <option value="">All statuses</option>
+                            @foreach (var status in Enum.GetValues<ComplaintStatus>())
+                            {
+                                <option value="@status">@status.ToLabel()</option>
+                            }
+                        </select>
+                    </div>
+                    @if (HasFilters)
+                    {
+                        <button type="button" class="btn btn-secondary" @onclick="ClearFilters">Clear</button>
+                    }
+                </div>
+            </div>
+
+            @if (!FilteredComplaints.Any())
+            {
+                <div class="flex flex-col items-center gap-md p-xl text-center" role="status">
+                    <Icon Name="search_off" Class="text-[32px] text-outline" />
+                    <p class="text-body-md text-secondary">No complaints match these filters.</p>
+                    @if (HasFilters) { <button type="button" class="btn btn-secondary" @onclick="ClearFilters">Clear filters</button> }
+                </div>
+            }
+            else
+            {
+                <div class="hidden overflow-x-auto md:block">
+                    <table class="w-full border-collapse text-left">
+                        <caption class="sr-only">Complaint queue with status and assignment actions</caption>
+                        <thead><tr class="border-b border-surface-variant bg-surface-container-low">
+                            <th class="p-4 text-label-sm font-semibold text-on-surface-variant">ID</th>
+                            <th class="p-4 text-label-sm font-semibold text-on-surface-variant">Subject / Student</th>
+                            <th class="p-4 text-label-sm font-semibold text-on-surface-variant">Department</th>
+                            <th class="p-4 text-label-sm font-semibold text-on-surface-variant">Submitted</th>
+                            <th class="p-4 text-label-sm font-semibold text-on-surface-variant">Status</th>
+                            <th class="p-4 text-right text-label-sm font-semibold text-on-surface-variant">Actions</th>
+                        </tr></thead>
+                        <tbody class="divide-y divide-surface-variant text-body-md">
+                            @foreach (var complaint in FilteredComplaints)
+                            {
+                                var assignment = AssignmentFor(complaint.Id);
+                                <tr @key="complaint.Id" class="hover:bg-surface-container-low/50">
+                                    <td class="p-4 font-mono text-caption text-secondary">#CMP-@complaint.Id.ToString("D4")</td>
+                                    <td class="max-w-[22rem] p-4">
+                                        <p class="truncate font-medium text-on-surface" title="@complaint.Title">@complaint.Title</p>
+                                        <p class="mt-1 text-caption text-on-surface-variant">@(complaint.StudentName ?? complaint.StudentEmail ?? $"Student {complaint.StudentId}")</p>
+                                    </td>
+                                    <td class="p-4 text-on-surface-variant">@(complaint.DepartmentName ?? "Unassigned")</td>
+                                    <td class="p-4 whitespace-nowrap text-on-surface-variant">@complaint.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
+                                    <td class="p-4"><StatusBadge Status="complaint.Status" /></td>
+                                    <td class="p-4">
+                                        <div class="flex justify-end gap-2">
+                                            <select class="field-input w-36" aria-label="New status for complaint @complaint.Id" value="@SelectedStatus(complaint.Id)" @onchange="args => SetSelectedStatus(complaint.Id, args.Value?.ToString())">
+                                                @foreach (var status in Enum.GetValues<ComplaintStatus>()) { <option value="@status">@status.ToLabel()</option> }
+                                            </select>
+                                            <button type="button" class="icon-btn" title="Save status" aria-label="Save status for complaint @complaint.Id" disabled="@(_busyId == complaint.Id)" @onclick="() => SaveStatusAsync(complaint.Id)"><Icon Name="save" /></button>
+                                            <button type="button" class="icon-btn" title="Assign complaint" aria-label="Assign complaint @complaint.Id" @onclick="() => ToggleAssignment(complaint.Id)"><Icon Name="person_add" /></button>
+                                            @if (complaint.Status is not (ComplaintStatus.Resolved or ComplaintStatus.Rejected))
+                                            {
+                                                <button type="button" class="btn btn-secondary whitespace-nowrap" disabled="@(_busyId == complaint.Id)" @onclick="() => ResolveAsync(complaint.Id)"><Icon Name="task_alt" /><span>Resolve</span></button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                                @if (_assigningId == complaint.Id)
+                                {
+                                    <tr class="border-b border-surface-variant bg-surface-container-low"><td colspan="6" class="p-lg">
+                                        <AssignmentForm ComplaintId="complaint.Id" Departments="_departments ?? []" Model="assignment" Busy="@(_busyId == complaint.Id)" OnSave="item => SaveAssignmentAsync(complaint.Id, item)" OnCancel="CloseAssignment" />
+                                    </td></tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="divide-y divide-surface-variant md:hidden">
+                    @foreach (var complaint in FilteredComplaints)
+                    {
+                        var assignment = AssignmentFor(complaint.Id);
+                        <article @key="complaint.Id" class="flex flex-col gap-md p-lg">
+                            <div class="flex items-start justify-between gap-md">
+                                <div class="min-w-0"><p class="text-caption font-mono text-secondary">#CMP-@complaint.Id.ToString("D4") · @complaint.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</p><h3 class="mt-1 break-words text-label-md font-semibold text-on-surface">@complaint.Title</h3></div>
+                                <StatusBadge Status="complaint.Status" />
+                            </div>
+                            <dl class="grid grid-cols-2 gap-sm text-caption"><div><dt class="text-on-surface-variant">Student</dt><dd class="mt-1 break-words text-on-surface">@(complaint.StudentName ?? complaint.StudentEmail ?? $"Student {complaint.StudentId}")</dd></div><div><dt class="text-on-surface-variant">Department</dt><dd class="mt-1 text-on-surface">@(complaint.DepartmentName ?? "Unassigned")</dd></div></dl>
+                            <details class="text-body-sm text-on-surface-variant"><summary class="cursor-pointer text-label-sm text-primary">View complaint details</summary><p class="mt-sm whitespace-pre-wrap">@complaint.Description</p></details>
+                            <div class="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-sm">
+                                <select class="field-input" aria-label="New status for complaint @complaint.Id" value="@SelectedStatus(complaint.Id)" @onchange="args => SetSelectedStatus(complaint.Id, args.Value?.ToString())">
+                                    @foreach (var status in Enum.GetValues<ComplaintStatus>()) { <option value="@status">@status.ToLabel()</option> }
+                                </select>
+                                <button type="button" class="icon-btn" title="Save status" aria-label="Save status for complaint @complaint.Id" disabled="@(_busyId == complaint.Id)" @onclick="() => SaveStatusAsync(complaint.Id)"><Icon Name="save" /></button>
+                                <button type="button" class="icon-btn" title="Assign complaint" aria-label="Assign complaint @complaint.Id" @onclick="() => ToggleAssignment(complaint.Id)"><Icon Name="person_add" /></button>
+                                @if (complaint.Status is not (ComplaintStatus.Resolved or ComplaintStatus.Rejected))
+                                {
+                                    <button type="button" class="icon-btn text-primary" title="Resolve complaint" aria-label="Resolve complaint @complaint.Id" disabled="@(_busyId == complaint.Id)" @onclick="() => ResolveAsync(complaint.Id)"><Icon Name="task_alt" /></button>
+                                }
+                            </div>
+                            @if (_assigningId == complaint.Id)
+                            {
+                                <AssignmentForm ComplaintId="complaint.Id" Departments="_departments ?? []" Model="assignment" Busy="@(_busyId == complaint.Id)" OnSave="item => SaveAssignmentAsync(complaint.Id, item)" OnCancel="CloseAssignment" />
+                            }
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
+</div>
+
+@code {
+    private List<ApiComplaint>? _complaints;
+    private IReadOnlyList<DepartmentOption>? _departments;
+    private readonly Dictionary<int, string> _statusSelections = [];
+    private readonly Dictionary<int, ComplaintAssignment> _assignments = [];
+    private bool _loadFailed;
+    private bool _loading;
+    private string _search = string.Empty;
+    private int? _departmentFilter;
+    private string _statusFilter = string.Empty;
+    private int? _busyId;
+    private int? _assigningId;
+    private string? _actionError;
+    private string? _notice;
+
+    private int PendingCount => _complaints?.Count(item => item.Status == ComplaintStatus.Pending) ?? 0;
+    private int InReviewCount => _complaints?.Count(item => item.Status is ComplaintStatus.UnderReview or ComplaintStatus.Assigned) ?? 0;
+    private bool HasFilters => !string.IsNullOrWhiteSpace(_search) || _departmentFilter.HasValue || !string.IsNullOrWhiteSpace(_statusFilter);
+    private IEnumerable<ApiComplaint> FilteredComplaints => (_complaints ?? []).Where(MatchesFilters).OrderByDescending(item => item.CreatedAt);
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (_loading) return;
+
+        _loadFailed = false;
+        _actionError = null;
+        _loading = true;
+        _complaints = null;
+        try
+        {
+            _departments = await DepartmentCatalog.GetAllAsync();
+            _complaints = (await Api.GetComplaintsAsync(_departmentFilter)).ToList();
+            foreach (var complaint in _complaints)
+            {
+                _statusSelections.TryAdd(complaint.Id, complaint.Status.ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load the administrator complaint queue");
+            _loadFailed = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private bool MatchesFilters(ApiComplaint complaint)
+    {
+        var query = _search.Trim();
+        var matchesSearch = query.Length == 0 || complaint.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || complaint.Id.ToString().Contains(query, StringComparison.OrdinalIgnoreCase)
+            || (complaint.StudentName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (complaint.StudentEmail?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false);
+        var matchesStatus = _statusFilter.Length == 0 || complaint.Status.ToString() == _statusFilter;
+        return matchesSearch && matchesStatus;
+    }
+
+    private ComplaintAssignment AssignmentFor(int id)
+    {
+        if (!_assignments.TryGetValue(id, out var assignment))
+        {
+            assignment = new ComplaintAssignment();
+            _assignments[id] = assignment;
+        }
+        return assignment;
+    }
+
+    private string SelectedStatus(int id) => _statusSelections.GetValueOrDefault(id, ComplaintStatus.Pending.ToString());
+
+    private void SetSelectedStatus(int id, string? value)
+    {
+        if (Enum.TryParse<ComplaintStatus>(value, out var status))
+        {
+            _statusSelections[id] = status.ToString();
+            _notice = null;
+        }
+    }
+
+    private async Task SaveStatusAsync(int id)
+    {
+        if (!Enum.TryParse<ComplaintStatus>(SelectedStatus(id), out var status)) return;
+        _busyId = id;
+        _actionError = null;
+        _notice = null;
+        try
+        {
+            Replace(await Api.UpdateComplaintStatusAsync(id, status));
+            _notice = $"Complaint #CMP-{id:D4} updated to {status.ToLabel()}.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to update complaint {ComplaintId}", id);
+            _actionError = "The status could not be saved. Check the API connection and retry.";
+        }
+        finally { _busyId = null; }
+    }
+
+    private Task ResolveAsync(int id)
+    {
+        _statusSelections[id] = ComplaintStatus.Resolved.ToString();
+        return SaveStatusAsync(id);
+    }
+
+    private async Task SaveAssignmentAsync(int id, ComplaintAssignment assignment)
+    {
+        _busyId = id;
+        _actionError = null;
+        _notice = null;
+        try
+        {
+            Replace(await Api.AssignComplaintAsync(id, assignment));
+            _assigningId = null;
+            _notice = $"Complaint #CMP-{id:D4} assigned successfully.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to assign complaint {ComplaintId}", id);
+            _actionError = "The assignment could not be saved. Verify the department and staff IDs.";
+        }
+        finally { _busyId = null; }
+    }
+
+    private void Replace(ApiComplaint updated)
+    {
+        var index = _complaints!.FindIndex(item => item.Id == updated.Id);
+        if (index >= 0) _complaints[index] = updated;
+        _statusSelections[updated.Id] = updated.Status.ToString();
+    }
+
+    private void ToggleAssignment(int id) => _assigningId = _assigningId == id ? null : id;
+    private void CloseAssignment() => _assigningId = null;
+
+    private async Task DepartmentChangedAsync(ChangeEventArgs args)
+    {
+        _departmentFilter = int.TryParse(args.Value?.ToString(), out var departmentId) ? departmentId : null;
+        await LoadAsync();
+    }
+
+    private async Task ClearFilters()
+    {
+        _search = string.Empty;
+        _departmentFilter = null;
+        _statusFilter = string.Empty;
+        await LoadAsync();
+    }
+}

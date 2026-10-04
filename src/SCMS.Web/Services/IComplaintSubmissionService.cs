@@ -3,7 +3,7 @@ using SCMS.Web.Models;
 
 namespace SCMS.Web.Services;
 
-public sealed record ComplaintSubmissionResult(int ComplaintId, string ReferenceNumber);
+public sealed record ComplaintSubmissionResult(int ComplaintId, string ReferenceNumber, string? AttachmentWarning = null);
 
 /// <summary>
 /// Sends a complaint (and its attachments) to the backend.

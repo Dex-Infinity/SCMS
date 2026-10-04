@@ -30,7 +30,7 @@ public class AnalyticsRepository : IAnalyticsRepository
             .ToListAsync();
     }
 
-    // Count complaints grouped by the department they are assigned to
+    // Count complaints grouped by the department they are assigned to, including department name
     public async Task<List<DepartmentCountDto>> CountByDepartmentAsync()
     {
         var departments = await _context.Departments
@@ -42,6 +42,12 @@ public class AnalyticsRepository : IAnalyticsRepository
             .Select(g => new
             {
                 DepartmentId = g.Key,
+        return await _context.Complaints
+            .GroupBy(c => new { c.DepartmentId, DepartmentName = c.Department != null ? c.Department.Name : "Unassigned" })
+            .Select(g => new DepartmentCountDto
+            {
+                DepartmentId = g.Key.DepartmentId.ToString(),
+                DepartmentName = g.Key.DepartmentName,
                 Count = g.Count()
             })
             .OrderByDescending(d => d.Count)

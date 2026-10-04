@@ -32,6 +32,13 @@ public class AttachmentsController : ControllerBase
         _complaintRepository = complaintRepository;
         _attachmentRepository = attachmentRepository;
         _context = context;
+    private readonly ApplicationDbContext _dbContext;
+
+    // Inject attachment service
+    public AttachmentsController(IAttachmentService attachmentService, ApplicationDbContext dbContext)
+    {
+        _attachmentService = attachmentService;
+        _dbContext = dbContext;
     }
 
     // POST api/attachments/complaints/{complaintId} - Upload a supporting document
@@ -55,6 +62,8 @@ public class AttachmentsController : ControllerBase
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to upload attachments to this complaint." });
             }
         }
+        var accessError = await EnsureComplaintAccessAsync(complaintId);
+        if (accessError != null) return accessError;
 
         var uploadedBy = User.Identity?.Name ?? "unknown";
 
@@ -87,6 +96,8 @@ public class AttachmentsController : ControllerBase
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to view attachments for this complaint." });
             }
         }
+        var accessError = await EnsureComplaintAccessAsync(complaintId);
+        if (accessError != null) return accessError;
 
         var result = await _attachmentService.GetComplaintAttachmentsAsync(complaintId);
         return Ok(result);
@@ -112,6 +123,18 @@ public class AttachmentsController : ControllerBase
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to download this attachment." });
             }
         }
+
+        var complaintId = await _dbContext.Attachments
+            .Where(attachment => attachment.Id == id)
+            .Select(attachment => (int?)attachment.ComplaintId)
+            .FirstOrDefaultAsync();
+        if (!complaintId.HasValue)
+        {
+            return NotFound(new { message = $"Attachment with ID {id} was not found." });
+        }
+
+        var accessError = await EnsureComplaintAccessAsync(complaintId.Value);
+        if (accessError != null) return accessError;
 
         var result = await _attachmentService.DownloadAsync(id);
         if (result == null)
@@ -142,6 +165,18 @@ public class AttachmentsController : ControllerBase
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = "You are not authorized to delete this attachment." });
             }
         }
+
+        var complaintId = await _dbContext.Attachments
+            .Where(attachment => attachment.Id == id)
+            .Select(attachment => (int?)attachment.ComplaintId)
+            .FirstOrDefaultAsync();
+        if (!complaintId.HasValue)
+        {
+            return NotFound(new { message = $"Attachment with ID {id} was not found." });
+        }
+
+        var accessError = await EnsureComplaintAccessAsync(complaintId.Value);
+        if (accessError != null) return accessError;
 
         var deleted = await _attachmentService.DeleteAsync(id);
         if (!deleted)
@@ -203,5 +238,22 @@ public class AttachmentsController : ControllerBase
         }
 
         return false;
+    private async Task<IActionResult?> EnsureComplaintAccessAsync(int complaintId)
+    {
+        var studentId = await _dbContext.Complaints
+            .Where(complaint => complaint.Id == complaintId)
+            .Select(complaint => (int?)complaint.StudentId)
+            .FirstOrDefaultAsync();
+        if (!studentId.HasValue)
+        {
+            return NotFound(new { message = $"Complaint with ID {complaintId} was not found." });
+        }
+
+        if (User.IsInRole("Admin")) return null;
+
+        var currentStudentId = User.FindFirstValue("student_id");
+        return int.TryParse(currentStudentId, out var parsedStudentId) && parsedStudentId == studentId.Value
+            ? null
+            : Forbid();
     }
 }

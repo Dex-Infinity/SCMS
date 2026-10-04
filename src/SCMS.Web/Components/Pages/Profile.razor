@@ -1,0 +1,105 @@
+@page "/profile"
+@attribute [Authorize]
+@inject ScmsApiClient Api
+@inject ILogger<Profile> Logger
+
+<PageTitle>My Profile - SCMS Portal</PageTitle>
+
+<div class="mx-auto flex w-full max-w-[760px] flex-col gap-xl">
+    <header><h1 tabindex="-1" class="text-headline-lg-mobile text-on-surface focus:outline-none md:text-headline-lg">My Profile</h1><p class="mt-2 text-body-md text-on-surface-variant">Manage the personal details associated with your account.</p></header>
+
+    @if (_error is not null && _model is null)
+    {
+        <div class="flex items-center justify-between gap-md rounded-xl bg-error-container p-lg text-on-error-container" role="alert"><p>@_error</p><button type="button" class="btn btn-primary" disabled="@_loading" @onclick="LoadAsync">Try again</button></div>
+    }
+    else if (_model is null)
+    {
+        <div role="status" aria-label="Loading profile" class="h-96 animate-pulse rounded-xl bg-surface-container"></div>
+    }
+    else
+    {
+        @if (_saved) { <p class="rounded-lg bg-primary-fixed px-md py-sm text-body-md text-on-primary-fixed" role="status">Your profile was updated.</p> }
+        @if (_error is not null) { <p class="rounded-lg bg-error-container px-md py-sm text-body-md text-on-error-container" role="alert">@_error</p> }
+        <EditForm Model="_model" OnValidSubmit="SaveAsync" class="flex flex-col gap-xl rounded-xl border border-outline-variant bg-surface-container-lowest p-lg shadow-sm md:p-xl" aria-busy="@_saving">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="rounded-lg bg-error-container p-md text-body-sm text-on-error-container" />
+            <div class="grid grid-cols-1 gap-lg sm:grid-cols-2">
+                <div class="flex flex-col gap-2"><label class="field-label" for="profile-name">Full name</label><InputText id="profile-name" class="field-input" autocomplete="name" @bind-Value="_model.FullName" /><ValidationMessage For="() => _model.FullName" /></div>
+                <div class="flex flex-col gap-2"><label class="field-label" for="profile-username">Username</label><InputText id="profile-username" class="field-input" autocomplete="username" @bind-Value="_model.UserName" /><ValidationMessage For="() => _model.UserName" /></div>
+                <div class="flex flex-col gap-2"><label class="field-label" for="profile-email">Email</label><input id="profile-email" class="field-input" type="email" value="@_model.Email" readonly aria-describedby="email-note" /><p id="email-note" class="text-caption text-on-surface-variant">Email is managed by your account provider.</p></div>
+                <div class="flex flex-col gap-2"><label class="field-label" for="profile-phone">Phone number</label><InputText id="profile-phone" class="field-input" type="tel" autocomplete="tel" @bind-Value="_model.PhoneNumber" /><ValidationMessage For="() => _model.PhoneNumber" /></div>
+            </div>
+            <div class="border-t border-outline-variant/50 pt-lg"><p class="field-label">Account role</p><p class="mt-1 text-body-md text-on-surface">@_model.Roles</p></div>
+            <div class="flex flex-col-reverse gap-md border-t border-outline-variant/50 pt-lg sm:flex-row sm:justify-end">
+                <button type="button" class="btn btn-secondary" @onclick="LoadAsync" disabled="@(_saving || _loading)">Discard changes</button>
+                <button type="submit" class="btn btn-primary" disabled="@(_saving || _loading)">@if (_saving) { <Icon Name="progress_activity" Class="animate-spin motion-reduce:animate-none" /><span>Saving</span> } else { <Icon Name="save" /><span>Save profile</span> }</button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private ProfileFormModel? _model;
+    private bool _saving;
+    private bool _loading;
+    private bool _saved;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (_loading || _saving) return;
+
+        _loading = true;
+        _model = null;
+        _error = null;
+        _saved = false;
+        try
+        {
+            var profile = await Api.GetProfileAsync();
+            _model = new ProfileFormModel
+            {
+                FullName = profile.FullName,
+                UserName = profile.UserName,
+                Email = profile.Email,
+                PhoneNumber = profile.PhoneNumber,
+                Roles = string.Join(", ", profile.Roles)
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load profile");
+            _error = ex is UnauthorizedAccessException ? ex.Message : "Check the API connection and try again.";
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _loading || _model is null) return;
+
+        _saving = true;
+        _error = null;
+        _saved = false;
+        try
+        {
+            var result = await Api.UpdateProfileAsync(new ProfileUpdate
+            {
+                FullName = _model!.FullName.Trim(),
+                UserName = _model.UserName.Trim(),
+                PhoneNumber = string.IsNullOrWhiteSpace(_model.PhoneNumber) ? null : _model.PhoneNumber.Trim()
+            });
+            _model.FullName = result.FullName;
+            _model.UserName = result.UserName;
+            _model.PhoneNumber = result.PhoneNumber;
+            _saved = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to update profile");
+            _error = "Your profile could not be saved. Check your details and try again.";
+        }
+        finally { _saving = false; }
+    }
+}
