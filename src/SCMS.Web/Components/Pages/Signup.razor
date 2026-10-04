@@ -15,7 +15,7 @@
         @if (Error)
         {
             <p class="mt-lg rounded-lg bg-error-container px-md py-sm text-body-md text-on-error-container" role="alert">
-                Registration failed. Check the fields, password requirements, and whether the email is already in use.
+                @(string.IsNullOrWhiteSpace(ErrorMessage) ? "Registration failed. Check the fields, password requirements, and whether the email is already in use." : ErrorMessage)
             </p>
         }
 
@@ -45,6 +45,9 @@
 @code {
     [SupplyParameterFromQuery(Name = "error")]
     public string? ErrorQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "message")]
+    public string? ErrorMessage { get; set; }
 
     private bool Error => ErrorQuery == "1";
 }

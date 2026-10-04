@@ -174,7 +174,40 @@ app.MapPost("/auth/register", async (HttpContext context, IHttpClientFactory cli
 
     if (!response.IsSuccessStatusCode)
     {
-        return Results.Redirect("/signup?error=1");
+        string? errorMessage = null;
+        try
+        {
+            var errorObj = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+            if (errorObj.TryGetProperty("message", out var msgProp) && msgProp.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                errorMessage = msgProp.GetString();
+            }
+            else if (errorObj.TryGetProperty("errors", out var errorsProp) && errorsProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+            {
+                var list = new List<string>();
+                foreach (var prop in errorsProp.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        foreach (var item in prop.Value.EnumerateArray())
+                        {
+                            if (item.ValueKind == System.Text.Json.JsonValueKind.String)
+                            {
+                                list.Add(item.GetString()!);
+                            }
+                        }
+                    }
+                }
+                if (list.Count > 0) errorMessage = string.Join(" ", list);
+            }
+        }
+        catch { }
+
+        var redirectUrl = string.IsNullOrWhiteSpace(errorMessage)
+            ? "/signup?error=1"
+            : $"/signup?error=1&message={Uri.EscapeDataString(errorMessage)}";
+
+        return Results.Redirect(redirectUrl);
     }
 
     var authenticated = await response.Content.ReadFromJsonAsync<ApiAuthResponse>();
