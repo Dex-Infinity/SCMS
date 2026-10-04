@@ -67,7 +67,7 @@ public class ComplaintService : IComplaintService
             ComplaintId = created.Id,
             Status = ComplaintStatus.Pending,
             Comment = "Complaint submitted.",
-            ChangedBy = created.StudentName ?? $"Student #{created.StudentId}",
+            ChangedBy = created.Student?.FullName ?? $"Student #{created.StudentId}",
             ChangedAt = DateTime.UtcNow
         });
 

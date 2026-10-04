@@ -22,6 +22,26 @@ public class StatusHistory
     // Optional note explaining the reason for the change
     public string? Note { get; set; }
 
+    // Backward-compatible aliases used by the complaint API. EF Core maps the
+    // underlying transition fields above, so these do not change the schema.
+    public ComplaintStatus Status
+    {
+        get => ToStatus;
+        set => ToStatus = value;
+    }
+
+    public string? Comment
+    {
+        get => Note;
+        set => Note = value;
+    }
+
+    public string ChangedBy
+    {
+        get => ChangedByUserId;
+        set => ChangedByUserId = value;
+    }
+
     public DateTime ChangedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation property
