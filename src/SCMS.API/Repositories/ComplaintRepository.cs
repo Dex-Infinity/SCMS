@@ -89,6 +89,28 @@ public class ComplaintRepository : IComplaintRepository
         var complaint = await _context.Complaints.FindAsync(id);
         if (complaint == null) return null;
 
+        if (!await _context.Departments.AnyAsync(department => department.Id == departmentId))
+        {
+            throw new InvalidOperationException($"Department with ID {departmentId} was not found.");
+        }
+
+        if (assignedToId.HasValue)
+        {
+            var admin = await _context.Admins
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == assignedToId.Value);
+
+            if (admin == null)
+            {
+                throw new InvalidOperationException($"Admin with ID {assignedToId.Value} was not found.");
+            }
+
+            if (admin.DepartmentId != departmentId)
+            {
+                throw new InvalidOperationException("The selected admin does not belong to the selected department.");
+            }
+        }
+
         complaint.DepartmentId = departmentId;
         complaint.AssignedToId = assignedToId;
         complaint.Status = ComplaintStatus.Assigned;
