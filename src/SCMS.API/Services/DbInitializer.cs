@@ -73,6 +73,16 @@ public class DbInitializer : IDbInitializer
         var admin = await _userManager.FindByEmailAsync(_seedOptions.AdminEmail);
         if (admin != null)
         {
+            if (!await _userManager.IsInRoleAsync(admin, AdminRole))
+            {
+                var roleResult = await _userManager.AddToRoleAsync(admin, AdminRole);
+                if (!roleResult.Succeeded)
+                {
+                    var errors = string.Join("; ", roleResult.Errors.Select(error => error.Description));
+                    throw new InvalidOperationException($"Could not grant the Admin role to the configured admin user: {errors}");
+                }
+            }
+
             return;
         }
 

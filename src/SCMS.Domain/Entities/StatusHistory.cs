@@ -1,5 +1,5 @@
-using SCMS.Domain.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
+using SCMS.Domain.Enums;
 
 namespace SCMS.Domain.Entities;
 
@@ -23,6 +23,8 @@ public class StatusHistory
     // Optional note explaining the reason for the change
     public string? Note { get; set; }
 
+    public DateTime ChangedAt { get; set; } = DateTime.UtcNow;
+
     // Backward-compatible aliases used by the complaint API. EF Core maps the
     // underlying transition fields above, so these do not change the schema.
     [NotMapped]
@@ -45,8 +47,6 @@ public class StatusHistory
         get => ChangedByUserId;
         set => ChangedByUserId = value;
     }
-
-    public DateTime ChangedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation property
     public Complaint? Complaint { get; set; }
