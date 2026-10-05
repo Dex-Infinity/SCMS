@@ -153,7 +153,7 @@ app.MapPost("/auth/login", async (HttpContext context, IHttpClientFactory client
     }
     catch (Exception)
     {
-        return Results.Redirect("/login?error=warming");
+        return Results.Redirect("/login?error=1");
     }
 
     if (!response.IsSuccessStatusCode)
