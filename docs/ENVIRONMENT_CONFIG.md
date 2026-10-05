@@ -29,6 +29,11 @@ Set these as **environment variables** or **CI/CD pipeline secrets** — never h
 
 The API accepts Render's `DATABASE_URL` directly, or a standard Npgsql connection string through `ConnectionStrings__DefaultConnection`. `SCMS_DB_CONNECTION_STRING` is also accepted as an alias for either form. The API uses the Npgsql EF Core provider and applies migrations at startup.
 
+For Render Blueprint deployments, `DATABASE_URL`, `SCMS_JWT_KEY`, and
+`ApiSettings__BaseUrl` are wired automatically by `render.yaml`. Render's
+persistent disk is mounted at `SCMS_UPLOAD_PATH` so uploaded attachments
+survive service restarts.
+
 ## Docker / docker-compose
 
 Secrets are passed via `environment:` in `docker-compose.yml`:

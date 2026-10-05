@@ -148,13 +148,39 @@ It automatically restores, builds, and tests the solution on every push to `main
 
 ## Production Deployment
 
-1. Set all required secrets as environment variables on the host or in the CI/CD pipeline (see [ENVIRONMENT_CONFIG.md](./ENVIRONMENT_CONFIG.md))
-  Set `ApiSettings__BaseUrl` for the web service to the deployed API's internal HTTPS URL.
-  On Render, attach the PostgreSQL database to the API service so `DATABASE_URL` is available, and set `SCMS_JWT_KEY` on the API service.
-2. Set `ASPNETCORE_ENVIRONMENT=Production`
-3. Run:
-   ```bash
-   docker compose up -d --build
-   ```
-4. Migrations will run automatically on first boot
-5. The seed admin account is only created if `Seed:SeedOnStartup` is `true` (disabled in production by default)
+### Render (recommended for phone-accessible hosting)
+
+The repository includes [`render.yaml`](../render.yaml), which creates:
+
+- A persistent PostgreSQL database.
+- An always-on API service with automatic migrations and `/health`.
+- An always-on web service configured to call the API's public HTTPS URL.
+- A persistent upload disk for the API.
+
+1. Push the repository to GitHub.
+2. In the [Render Dashboard](https://dashboard.render.com), choose **New > Blueprint** and select this repository.
+3. Use `render.yaml` as the Blueprint.
+4. During the first setup, provide the four `sync: false` admin variables if you want to manage the initial admin account through Render.
+5. Deploy the Blueprint and wait for both web and API health checks to pass.
+6. Open the `scms-web` Render URL on your phone. Do not use a `localhost` URL.
+
+The API runs migrations automatically on startup. The `scms-web` service receives
+`ApiSettings__BaseUrl` from the `scms-api` service, so the laptop is not involved
+after deployment.
+
+The Blueprint uses paid plans (`starter` and `basic-256mb`) so the services do
+not sleep like free instances. If you choose a free plan manually, the first
+request after inactivity can still be delayed by provider spin-up.
+
+### Manual production deployment
+
+If you do not use the Blueprint, set all required secrets as environment
+variables on the host or in the CI/CD pipeline (see
+[ENVIRONMENT_CONFIG.md](./ENVIRONMENT_CONFIG.md)). Set
+`ApiSettings__BaseUrl` on the web service to the deployed API's public HTTPS
+URL, attach PostgreSQL to the API so `DATABASE_URL` is available, and set
+`SCMS_JWT_KEY`.
+
+Set `ASPNETCORE_ENVIRONMENT=Production`. Migrations run automatically on first
+boot. The seed admin account is only created if
+`Seed:SeedOnStartup` is `true` (disabled in production by default).

@@ -72,6 +72,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 async Task<IResult> CompleteSignInAsync(HttpContext context, ApiAuthResponse authenticated, string? returnUrl)
 {
