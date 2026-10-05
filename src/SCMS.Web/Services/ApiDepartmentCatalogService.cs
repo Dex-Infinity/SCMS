@@ -8,9 +8,9 @@ public sealed class ApiDepartmentCatalogService(IHttpClientFactory clients, IMem
 {
     private static readonly List<DepartmentOption> FallbackDepartments = new()
     {
-        new DepartmentOption { Id = 1, Code = "CS", Name = "Computer Science", Description = "Department of Computer Science & IT" },
-        new DepartmentOption { Id = 2, Code = "EE", Name = "Electrical Engineering", Description = "Department of Electrical & Computer Engineering" },
-        new DepartmentOption { Id = 3, Code = "AA", Name = "Academic Affairs", Description = "University Central Academic Affairs Office" }
+        new DepartmentOption { Id = 1, Code = "CS", Name = "Computer Science" },
+        new DepartmentOption { Id = 2, Code = "EE", Name = "Electrical Engineering" },
+        new DepartmentOption { Id = 3, Code = "AA", Name = "Academic Affairs" }
     };
 
     public async Task<IReadOnlyList<DepartmentOption>> GetAllAsync(CancellationToken cancellationToken = default)
