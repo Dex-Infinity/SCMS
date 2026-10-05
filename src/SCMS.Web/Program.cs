@@ -73,6 +73,20 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/api/warmup", (IHttpClientFactory clients) =>
+{
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            var client = clients.CreateClient("SCMS.Api.Public");
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+            await client.GetAsync("health", cts.Token);
+        }
+        catch { }
+    });
+    return Results.Ok(new { status = "warming" });
+});
 
 async Task<IResult> CompleteSignInAsync(HttpContext context, ApiAuthResponse authenticated, string? returnUrl)
 {
@@ -132,7 +146,15 @@ app.MapPost("/auth/login", async (HttpContext context, IHttpClientFactory client
     }
 
     var login = new ApiLoginRequest(email, password);
-    var response = await clients.CreateClient("SCMS.Api.Public").PostAsJsonAsync("api/auth/login", login);
+    HttpResponseMessage response;
+    try
+    {
+        response = await clients.CreateClient("SCMS.Api.Public").PostAsJsonAsync("api/auth/login", login);
+    }
+    catch (Exception)
+    {
+        return Results.Redirect("/login?error=warming");
+    }
 
     if (!response.IsSuccessStatusCode)
     {

@@ -6,34 +6,48 @@ namespace SCMS.Web.Services;
 
 public sealed class ApiDepartmentCatalogService(IHttpClientFactory clients, IMemoryCache cache) : IDepartmentCatalogService
 {
+    private static readonly List<DepartmentOption> FallbackDepartments = new()
+    {
+        new DepartmentOption { Id = 1, Code = "CS", Name = "Computer Science", Description = "Department of Computer Science & IT" },
+        new DepartmentOption { Id = 2, Code = "EE", Name = "Electrical Engineering", Description = "Department of Electrical & Computer Engineering" },
+        new DepartmentOption { Id = 3, Code = "AA", Name = "Academic Affairs", Description = "University Central Academic Affairs Office" }
+    };
+
     public async Task<IReadOnlyList<DepartmentOption>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var departments = await cache.GetOrCreateAsync("departments:all", async entry =>
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
             var client = clients.CreateClient("SCMS.Api.Public");
-            const int maxAttempts = 3;
+            const int maxAttempts = 2;
 
             for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
                 try
                 {
-                    return await client.GetFromJsonAsync<List<DepartmentOption>>("api/departments", cancellationToken)
-                        ?? throw new HttpRequestException("The API returned an empty department list.");
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    cts.CancelAfter(TimeSpan.FromSeconds(5));
+
+                    var result = await client.GetFromJsonAsync<List<DepartmentOption>>("api/departments", cts.Token);
+                    if (result is { Count: > 0 })
+                    {
+                        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+                        return result;
+                    }
                 }
-                catch (HttpRequestException) when (attempt < maxAttempts)
+                catch
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
-                }
-                catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested && attempt < maxAttempts)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+                    if (attempt < maxAttempts)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                    }
                 }
             }
 
-            throw new HttpRequestException("The API could not be reached after multiple attempts.");
+            // If backend is sleeping/warming up, provide fallback list and re-check sooner
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30);
+            return FallbackDepartments;
         });
 
-        return departments ?? throw new HttpRequestException("The API returned an empty department list.");
+        return departments ?? FallbackDepartments;
     }
 }

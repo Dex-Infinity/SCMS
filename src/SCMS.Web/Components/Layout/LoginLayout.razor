@@ -1,3 +1,40 @@
 @inherits LayoutComponentBase
+@using Microsoft.Extensions.Options
+@inject IHttpClientFactory HttpClientFactory
+@inject IOptions<ApiSettings> ApiOptions
 
 @Body
+
+<script>
+    (function () {
+        try {
+            // Trigger browser-to-backend wakeup ping directly to Render edge
+            var backendUrl = "@(ApiOptions.Value?.BaseUrl?.TrimEnd('/'))/health";
+            if (backendUrl && backendUrl.indexOf('http') === 0) {
+                fetch(backendUrl, { mode: 'no-cors', cache: 'no-store' }).catch(function () {});
+            }
+            // Trigger server-to-backend warmup endpoint
+            fetch('/api/warmup', { cache: 'no-store' }).catch(function () {});
+        } catch (e) {}
+    })();
+</script>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Fire-and-forget background ping from Web server to API server
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var client = HttpClientFactory.CreateClient("SCMS.Api.Public");
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+                await client.GetAsync("health", cts.Token);
+            }
+            catch
+            {
+                // Best-effort warm-up
+            }
+        });
+    }
+}
