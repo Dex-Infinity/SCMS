@@ -56,6 +56,7 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(problemDetails);
         };
     });
+builder.Services.AddMemoryCache();
 
 // Configure CORS for web frontend integration
 builder.Services.AddCors(options =>

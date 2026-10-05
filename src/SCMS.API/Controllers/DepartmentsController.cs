@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SCMS.API.DTOs;
@@ -14,10 +15,12 @@ namespace SCMS.API.Controllers;
 public class DepartmentsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMemoryCache? _cache;
 
-    public DepartmentsController(ApplicationDbContext context)
+    public DepartmentsController(ApplicationDbContext context, IMemoryCache? cache = null)
     {
         _context = context;
+        _cache = cache;
     }
 
     // GET api/departments - Get list of all departments
@@ -25,7 +28,22 @@ public class DepartmentsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<DepartmentResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
     {
-        var departments = await _context.Departments
+        if (_cache is null)
+        {
+            return Ok(await QueryDepartmentsAsync(cancellationToken));
+        }
+
+        var departments = await _cache.GetOrCreateAsync("departments:all", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return await QueryDepartmentsAsync(cancellationToken);
+        });
+
+        return Ok(departments ?? []);
+    }
+
+    private Task<List<DepartmentResponseDto>> QueryDepartmentsAsync(CancellationToken cancellationToken) =>
+        _context.Departments
             .AsNoTracking()
             .OrderBy(d => d.Name)
             .Select(d => new DepartmentResponseDto
@@ -36,9 +54,6 @@ public class DepartmentsController : ControllerBase
                 Description = d.Description
             })
             .ToListAsync(cancellationToken);
-
-        return Ok(departments);
-    }
 
     // GET api/departments/{id} - Get a single department by ID
     [HttpGet("{id:int}")]
